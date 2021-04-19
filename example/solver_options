@@ -1,0 +1,24 @@
+form
+Tutte
+alphaRatio
+1e-6
+alpha
+-1
+ftol_abs
+1e-8
+ftol_rel
+1e-8
+xtol_abs
+1e-8
+xtol_rel
+1e-8
+algorithm
+LBFGS
+maxeval
+10000
+stopCode
+all_good
+record
+vert	1
+energy	1
+minArea	1
