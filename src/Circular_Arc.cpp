@@ -11,42 +11,12 @@ void Circular_Arc::update_arc() {
     Eigen::Vector2d perpVec(-vec.y(), vec.x());
     center = (start_point + end_point)/2 + perpVec/(2*tan(arc_angle/2));
 
-    start_angle = get_vector_angle(start_point - center);
+    start_angle = compute_vector_angle(start_point - center);
     end_angle = start_angle + arc_angle;
 }
 
-// static version
-//Rectangle Circular_Arc::get_arc_bounding_box(const Circular_Arc &arc) {
-//    double xmin, xmax, ymin, ymax;
-//    // left
-//    if (is_angle_between(M_PI, arc.start_angle, arc.end_angle)) {
-//        xmin = arc.center.x() - arc.radius;
-//    } else {
-//        xmin = fmin(arc.start_point.x(), arc.end_point.x());
-//    }
-//    // right
-//    if (is_angle_between(0, arc.start_angle, arc.end_angle)) {
-//        xmax = arc.center.x() + arc.radius;
-//    } else {
-//        xmax = fmax(arc.start_point.x(), arc.end_point.x());
-//    }
-//    // bottom
-//    if (is_angle_between(3*M_PI/2, arc.start_angle, arc.end_angle)) {
-//        ymin = arc.center.y() - arc.radius;
-//    } else {
-//        ymin = fmin(arc.start_point.y(), arc.end_point.y());
-//    }
-//    // top
-//    if (is_angle_between(M_PI/2, arc.start_angle, arc.end_angle)) {
-//        ymax = arc.center.y() + arc.radius;
-//    } else {
-//        ymax = fmax(arc.start_point.y(), arc.end_point.y());
-//    }
-//    //
-//    return Rectangle(Point(xmin,ymin), Point(xmax,ymax));
-//}
 
-Rectangle Circular_Arc::get_bounding_box() {
+Rectangle Circular_Arc::get_bounding_box() const {
     double xmin, xmax, ymin, ymax;
     // left
     if (is_angle_between(M_PI, start_angle, end_angle)) {
@@ -171,10 +141,10 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
     // extract circular angles from sin and cos
     std::vector<double> theta_list, phi_list;
     for (int i = 0; i < cosTheta_list.size(); ++i) {
-        theta_list.push_back(get_vector_angle(Point(cosTheta_list[i], sinTheta_list[i])));
+        theta_list.push_back(compute_vector_angle(Point(cosTheta_list[i], sinTheta_list[i])));
     }
     for (int i = 0; i < cosPhi_list.size(); ++i) {
-        phi_list.push_back(get_vector_angle(Point(cosPhi_list[i], sinPhi_list[i])));
+        phi_list.push_back(compute_vector_angle(Point(cosPhi_list[i], sinPhi_list[i])));
     }
 
     // select circular angles in the range of input arc angles
@@ -217,14 +187,14 @@ void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circu
     }
 
     // compute the other intersection between the two circles
-    double t = (p-o1).dot(o2-o1)/(o2-o1).dot(o2-o1);
+    double t = ((p-o1).dot(o2-o1))/((o2-o1).dot(o2-o1));
     Point proj_p = o1 + t * (o2 - o1);
     Point q = 2 * proj_p - p;
-    double theta = get_vector_angle(q - o1);
-    double phi   = get_vector_angle(q - o2);
+    double theta = compute_vector_angle(q - o1);
+    double phi   = compute_vector_angle(q - o2);
 
     // if the intersection lies on the arcs, save it to result
-    if (is_angle_between(theta, arc1.start_angle, arc2.end_angle)
+    if (is_angle_between(theta, arc1.start_angle, arc1.end_angle)
     &&  is_angle_between(phi  , arc2.start_angle, arc2.end_angle)) {
         result.emplace_back(Intersection_Point{q, theta, phi});
     }
