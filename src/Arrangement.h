@@ -21,14 +21,10 @@ struct SubArc_Edge {
     size_t id1;
     // second vertex index
     size_t id2;
-    // start angle
-    double angle1;
-    // end angle
-    double angle2;
-    // circular arc angle
-    double arc_angle;
     // parent edge index
     size_t parent_id;
+    // circular arc geometry
+    Circular_Arc arc;
 };
 
 class Arrangement {

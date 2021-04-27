@@ -85,10 +85,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
     for (size_t ei = 0; ei < edges.size(); ++ei) {
         if (edge_intersection_list[ei].empty()) {
             // no intersection point in ei, copy the input edge
-            pEdges.emplace_back(SubArc_Edge{edges[ei].id1, edges[ei].id2,
-                                            edges[ei].arc.get_start_angle(),
-                                            edges[ei].arc.get_end_angle(),
-                                            edges[ei].arc.get_arc_angle(), ei});
+            pEdges.emplace_back(SubArc_Edge{edges[ei].id1, edges[ei].id2, ei, edges[ei].arc});
         } else {
             double theta1 = edges[ei].arc.get_start_angle();
             double theta2 = edges[ei].arc.get_end_angle();
@@ -112,10 +109,13 @@ void Arrangement::subdivide_polyArc_by_intersection(
             size_t last_vId = edges[ei].id1;
             double last_angle = 0;
             for (const auto & pid_angle : sorted_intersections) {
-                pEdges.emplace_back(SubArc_Edge{last_vId, pid_angle.first,
-                                                theta1 + last_angle,
-                                                theta1 + pid_angle.second,
-                                                pid_angle.second - last_angle, ei});
+                pEdges.emplace_back(SubArc_Edge{last_vId, pid_angle.first, ei,
+                                                Circular_Arc(pts[last_vId],pts[pid_angle.first],
+                                                             pid_angle.second - last_angle,
+                                                             edges[ei].arc.get_center(), edges[ei].arc.get_radius(),
+                                                             theta1 + last_angle,
+                                                             theta1 + pid_angle.second)});
+
                 last_vId = pid_angle.first;
                 last_angle = pid_angle.second;
             }
@@ -165,12 +165,16 @@ void Arrangement::decompose_into_cells(const std::vector<Point> &vertices, const
             // intersection vertex
             std::vector<Incident_Edge_Data> incident_edge_list;
             for (const auto id : in_edges) {
-                double incident_angle = edges[id].angle2 + ((edges[id].arc_angle > 0) ? (-M_PI_2) : M_PI_2);
+                double arc_angle = edges[id].arc.get_arc_angle();
+                double angle2 = edges[id].arc.get_end_angle();
+                double incident_angle = angle2 + ((arc_angle > 0) ? (-M_PI_2) : M_PI_2);
                 incident_angle = angle_mod_2PI(incident_angle);
                 incident_edge_list.emplace_back(Incident_Edge_Data{id, true, incident_angle});
             }
             for (const auto id : out_edges) {
-                double incident_angle = edges[id].angle1 + ((edges[id].arc_angle > 0) ? M_PI_2 : (-M_PI_2));
+                double arc_angle = edges[id].arc.get_arc_angle();
+                double angle1 = edges[id].arc.get_start_angle();
+                double incident_angle = angle1 + ((arc_angle > 0) ? M_PI_2 : (-M_PI_2));
                 incident_angle = angle_mod_2PI(incident_angle);
                 incident_edge_list.emplace_back(Incident_Edge_Data{id, false, incident_angle});
             }
