@@ -26,10 +26,10 @@ public:
 
     // data constructor
     // user is responsible for input data consistency.
-//    Circular_Arc(const Point &p1, const Point &p2, double theta,
-//                 const Point &o, double r, double theta1)
-//                 : start_point(p1), end_point(p2), arc_angle(theta), center(o), radius(r),
-//                 start_angle(theta1), end_angle(theta1+theta) {};
+    Circular_Arc(const Point &p1, const Point &p2, double theta,
+                 const Point &o, double r, double theta1, double theta2)
+                 : start_point(p1), end_point(p2), arc_angle(theta), center(o), radius(r),
+                 start_angle(theta1), end_angle(theta2) {};
 
     ~Circular_Arc() = default;
 
@@ -52,6 +52,8 @@ public:
     double get_arc_angle() const { return arc_angle; }
     double get_start_angle() const { return start_angle; }
     double get_end_angle() const { return end_angle; }
+    Point  get_center() const { return center; }
+    double get_radius() const { return radius; }
 
 private:
     // compute arc center, radius, start and end angle
