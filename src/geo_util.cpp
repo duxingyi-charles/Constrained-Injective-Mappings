@@ -5,8 +5,16 @@
 #include "geo_util.h"
 
 
-double get_vector_angle(const Eigen::Vector2d &vec) {
-    double x = vec.x(), y = vec.y();
+double angle_mod_2PI(double a) {
+    if (a >= 0) {
+        return fmod(a, 2*M_PI);
+    } else {
+        return 2*M_PI + fmod(a, 2*M_PI);
+    }
+}
+
+double compute_vector_angle(const Eigen::Vector2d &p) {
+    double x = p.x(), y = p.y();
     if (x == 0) {
         if (y >=0) {
             return M_PI/2;
@@ -26,11 +34,20 @@ double get_vector_angle(const Eigen::Vector2d &vec) {
     }
 }
 
+double compute_rotation_angle(double a1, double a2) {
+    double angle1 = angle_mod_2PI(a1);
+    double angle2 = angle_mod_2PI(a2);
+    if (angle1 <= angle2) {
+        return angle2 - angle1;
+    } else {
+        return angle2 + 2*M_PI - angle1;
+    }
+}
 
 bool is_angle_between_ccw(double a, double a1, double a2) {
-    double angle = fmod(a, 2*M_PI);
-    double angle1 = fmod(a1, 2*M_PI);
-    double angle2 = fmod(a2, 2*M_PI);
+    double angle = angle_mod_2PI(a);
+    double angle1 = angle_mod_2PI(a1);
+    double angle2 = angle_mod_2PI(a2);
 
     if (angle1 <= angle2) {
         return (angle >= angle1) && (angle < angle2);
@@ -40,9 +57,9 @@ bool is_angle_between_ccw(double a, double a1, double a2) {
 }
 
 bool is_angle_between_cw(double a, double a1, double a2) {
-    double angle = fmod(a, 2*M_PI);
-    double angle1 = fmod(a1, 2*M_PI);
-    double angle2 = fmod(a2, 2*M_PI);
+    double angle = angle_mod_2PI(a);
+    double angle1 = angle_mod_2PI(a1);
+    double angle2 = angle_mod_2PI(a2);
 
     if (angle2 <= angle1) {
         return (angle2 < angle) && (angle <= angle1);
