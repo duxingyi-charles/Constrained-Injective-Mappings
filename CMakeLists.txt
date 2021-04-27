@@ -7,6 +7,8 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Do not use shared lib.")
 
 include(FetchContent)
 include(cmake/Eigen3.cmake)
+include(cmake/cli11.cmake)
+include(cmake/nlohmann-json.cmake)
 include(cmake/nlopt.cmake)
 
 
@@ -26,9 +28,13 @@ set_target_properties(findInjective PROPERTIES LINKER_LANGUAGE CXX)
 add_executable(arc_arc_intersection_test apps/arc_arc_intersection_test.cpp)
 target_link_libraries(arc_arc_intersection_test PUBLIC arcOverlap)
 
+add_executable(subdivide_polyArc_test apps/subdivide_polyArc_test.cpp)
+target_link_libraries(subdivide_polyArc_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
 
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
     target_link_libraries(arc_arc_intersection_test PUBLIC ${MATH_LIBRARY})
+    target_link_libraries(subdivide_polyArc_test PUBLIC ${MATH_LIBRARY})
 endif()
