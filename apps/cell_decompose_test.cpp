@@ -62,7 +62,7 @@ void export_result(const std::string &output_file,
     output["parent_edges"] = json::array();
     for (const auto &e : pEdges) {
         output["edges"].push_back({e.id1, e.id2});
-        output["angles"].push_back(e.arc_angle);
+        output["angles"].push_back(e.arc.get_arc_angle());
         output["parent_edges"].push_back(e.parent_id);
     }
 
