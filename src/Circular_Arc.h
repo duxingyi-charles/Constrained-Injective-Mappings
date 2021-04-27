@@ -24,10 +24,17 @@ public:
     Circular_Arc(const Point &p1, const Point &p2, double theta)
             : start_point(p1), end_point(p2), arc_angle(theta) { update_arc(); };
 
+    // data constructor
+    // user is responsible for input data consistency.
+//    Circular_Arc(const Point &p1, const Point &p2, double theta,
+//                 const Point &o, double r, double theta1)
+//                 : start_point(p1), end_point(p2), arc_angle(theta), center(o), radius(r),
+//                 start_angle(theta1), end_angle(theta1+theta) {};
+
     ~Circular_Arc() = default;
 
 
-    Rectangle get_bounding_box();
+    Rectangle get_bounding_box() const;
 
     // compute intersections between arc1 and arc2, save intersection points to result
     static void compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
@@ -41,6 +48,10 @@ public:
     // given p is an intersection between arc1 and arc2, add the other intersection (if any) to result
     static void find_other_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2, const Point& p,
                                         std::vector<Intersection_Point>& result);
+
+    double get_arc_angle() const { return arc_angle; }
+    double get_start_angle() const { return start_angle; }
+    double get_end_angle() const { return end_angle; }
 
 private:
     // compute arc center, radius, start and end angle
