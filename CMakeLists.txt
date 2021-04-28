@@ -11,13 +11,15 @@ include(cmake/cli11.cmake)
 include(cmake/nlohmann-json.cmake)
 include(cmake/nlopt.cmake)
 
+find_package(autodiff)
+
 
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/src SRC_LIST)
 
 add_library(arcOverlap STATIC ${SRC_LIST})
 target_include_directories(arcOverlap PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(arcOverlap PUBLIC Eigen3::Eigen)
+target_link_libraries(arcOverlap PUBLIC Eigen3::Eigen autodiff::autodiff)
 
 add_executable(findInjective apps/TLC.cpp)
 target_link_libraries(findInjective PUBLIC arcOverlap nlopt::nlopt)
