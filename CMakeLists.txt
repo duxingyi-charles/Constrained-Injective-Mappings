@@ -34,6 +34,9 @@ target_link_libraries(subdivide_polyArc_test PUBLIC arcOverlap CLI11::CLI11 nloh
 add_executable(cell_decompose_test apps/cell_decompose_test.cpp)
 target_link_libraries(cell_decompose_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
+add_executable(arrangement_test apps/arrangement_test.cpp)
+target_link_libraries(arrangement_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
