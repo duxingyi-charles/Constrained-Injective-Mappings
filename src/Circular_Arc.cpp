@@ -46,6 +46,42 @@ Rectangle Circular_Arc::get_bounding_box() const {
     return Rectangle(Point(xmin,ymin), Point(xmax,ymax));
 }
 
+std::pair<Point,Point_Arc_Location> Circular_Arc::get_most_left_point() const
+{
+    if (is_angle_between(M_PI, start_angle, end_angle)) {
+        return std::make_pair(Point(center.x()-radius,center.y()), Middle);
+    } else {
+        if (start_point.x() < end_point.x()) {
+            return std::make_pair(start_point, Start);
+        } else {
+            return std::make_pair(end_point, End);
+        }
+    }
+}
+
+Eigen::Vector2d Circular_Arc::get_out_tangent_vector() const
+{
+    if (arc_angle > 0) {
+        return rotate_90deg(end_point - center);
+    } else {
+        return rotate_90deg(center - end_point);
+    }
+}
+
+Eigen::Vector2d Circular_Arc::get_in_tangent_vector() const
+{
+    if (arc_angle > 0) {
+        return rotate_90deg(start_point - center);
+    } else {
+        return rotate_90deg(center - start_point);
+    }
+}
+
+Circular_Arc Circular_Arc::reverse(const Circular_Arc &c) {
+    return Circular_Arc(c.end_point, c.start_point, -c.arc_angle,
+                        c.center, c.radius, c.end_angle, c.start_angle);
+}
+
 void Circular_Arc::compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
                           std::vector<Intersection_Point>& result)
 {
