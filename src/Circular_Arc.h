@@ -51,6 +51,9 @@ public:
     // compute the reverse arc (exchange start and end)
     static Circular_Arc reverse(const Circular_Arc &c);
 
+    // compute the signed area of arc segment
+    double get_segment_area() const;
+
     // compute intersections between arc1 and arc2, save intersection points to result
     static void compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
                                      std::vector<Intersection_Point>& result);

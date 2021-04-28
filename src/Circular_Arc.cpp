@@ -235,3 +235,7 @@ void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circu
         result.emplace_back(Intersection_Point{q, theta, phi});
     }
 }
+
+double Circular_Arc::get_segment_area() const {
+    return 0.5 * radius * radius * (arc_angle - sin(arc_angle));
+}
