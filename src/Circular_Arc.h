@@ -5,6 +5,7 @@
 #ifndef TLC_CIRCULAR_ARC_H
 #define TLC_CIRCULAR_ARC_H
 
+#include <utility>
 #include <vector>
 
 #include "geo_util.h"
@@ -23,14 +24,14 @@ enum Point_Arc_Location { Start, End, Middle };
 
 class Circular_Arc {
 public:
-    Circular_Arc(const Point &p1, const Point &p2, double theta)
-            : start_point(p1), end_point(p2), arc_angle(theta) { update_arc(); };
+    Circular_Arc(Point p1, Point p2, double theta)
+            : start_point(std::move(p1)), end_point(std::move(p2)), arc_angle(theta) { update_arc(); };
 
     // data constructor
     // user is responsible for input data consistency.
-    Circular_Arc(const Point &p1, const Point &p2, double theta,
-                 const Point &o, double r, double theta1, double theta2)
-                 : start_point(p1), end_point(p2), arc_angle(theta), center(o), radius(r),
+    Circular_Arc(Point p1, Point p2, double theta,
+                 Point o, double r, double theta1, double theta2)
+                 : start_point(std::move(p1)), end_point(std::move(p2)), arc_angle(theta), center(std::move(o)), radius(r),
                  start_angle(theta1), end_angle(theta2) {};
 
     ~Circular_Arc() = default;
@@ -85,9 +86,9 @@ private:
     double arc_angle;
 
     Point center;
-    double radius;
-    double start_angle;
-    double end_angle;
+    double radius{};
+    double start_angle{};
+    double end_angle{};
 
 };
 
