@@ -19,6 +19,8 @@ struct Intersection_Point {
     double angle2;
 };
 
+enum Point_Arc_Location { Start, End, Middle };
+
 class Circular_Arc {
 public:
     Circular_Arc(const Point &p1, const Point &p2, double theta)
@@ -36,6 +38,18 @@ public:
 
     Rectangle get_bounding_box() const;
 
+    // compute the most left point on the arc
+    // return: pair of <Point p, Point_Arc_Location s>
+    std::pair<Point,Point_Arc_Location> get_most_left_point() const;
+
+    // compute the vector tangent to the arc at end point
+    Eigen::Vector2d get_out_tangent_vector() const;
+    // compute the vector tangent to the arc at start point
+    Eigen::Vector2d get_in_tangent_vector() const;
+
+    // compute the reverse arc (exchange start and end)
+    static Circular_Arc reverse(const Circular_Arc &c);
+
     // compute intersections between arc1 and arc2, save intersection points to result
     static void compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
                                      std::vector<Intersection_Point>& result);
@@ -49,6 +63,11 @@ public:
     static void find_other_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2, const Point& p,
                                         std::vector<Intersection_Point>& result);
 
+
+
+
+    Point  get_start_point() const { return start_point; }
+    Point  get_end_point() const { return end_point; }
     double get_arc_angle() const { return arc_angle; }
     double get_start_angle() const { return start_angle; }
     double get_end_angle() const { return end_angle; }
