@@ -7,11 +7,12 @@
 
 #include "geo_util.h"
 
+template <typename Scalar>
 class Rectangle {
 public:
     // default: unit square
     Rectangle() : p_min(0,0), p_max(1,1) {};
-    Rectangle(const Point &p1, const Point &p2) : p_min(p1), p_max(p2) {};
+    Rectangle(const Point<Scalar> &p1, const Point<Scalar> &p2) : p_min(p1), p_max(p2) {};
 
     ~Rectangle() = default;
 
@@ -20,8 +21,8 @@ public:
 
 
 private:
-    Point p_min;
-    Point p_max;
+    Point<Scalar> p_min;
+    Point<Scalar> p_max;
 
 };
 

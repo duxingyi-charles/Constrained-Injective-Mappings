@@ -8,8 +8,10 @@
 
 #include "Arc_Occupancy.h"
 
+
+template <typename Scalar>
 void parse_input_file(const std::string &input_file,
-                      std::vector<Point> &verts, std::vector<std::pair<size_t,size_t>> &edges, double &theta) {
+                      std::vector<Point<Scalar>> &verts, std::vector<std::pair<size_t,size_t>> &edges, Scalar &theta) {
     using json = nlohmann::json;
     std::ifstream fin(input_file.c_str());
     if (!fin) {
@@ -37,7 +39,8 @@ void parse_input_file(const std::string &input_file,
     }
 }
 
-void export_result(const std::string &output_file, double occupancy)
+template <typename Scalar>
+void export_result(const std::string &output_file, Scalar occupancy)
 {
     using json = nlohmann::json;
     json output;
@@ -65,10 +68,13 @@ int main(int argc, char **argv)
             ->required();
     CLI11_PARSE(app, argc, argv);
 
+    //
+    typedef double Scalar;
+
     // load input
-    std::vector<Point> verts;
+    std::vector<Point<Scalar>> verts;
     std::vector<std::pair<size_t,size_t>> edges;
-    double theta;
+    Scalar theta;
 
     parse_input_file(args.input_file, verts, edges, theta);
 
@@ -83,7 +89,11 @@ int main(int argc, char **argv)
 //    }
 
     // compute arc occupancy
-    double occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+//    Scalar occupancy = Arc_Occupancy<Scalar>::compute_arc_occupancy(verts, edges, theta);
+
+    Arc_Occupancy<Scalar> arc_occupancy(theta);
+
+    auto occupancy = arc_occupancy.compute_arc_occupancy(verts, edges);
 
 
     // debug: check output

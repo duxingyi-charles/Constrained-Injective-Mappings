@@ -7,15 +7,17 @@
 
 #include "Circular_Arc.h"
 
+template <typename Scalar>
 struct Arc_Edge {
     // first vertex index
     size_t id1;
     // second vertex index
     size_t id2;
     // circular arc geometry
-    Circular_Arc arc;
+    Circular_Arc<Scalar> arc;
 };
 
+template <typename Scalar>
 struct SubArc_Edge {
     // first vertex index
     size_t id1;
@@ -24,9 +26,10 @@ struct SubArc_Edge {
     // parent edge index
     size_t parent_id;
     // circular arc geometry
-    Circular_Arc arc;
+    Circular_Arc<Scalar> arc;
 };
 
+template <typename Scalar>
 class Arrangement {
 public:
     Arrangement() = default;
@@ -34,18 +37,18 @@ public:
 
     // compute self-arrangement of a circular arc loop
     // return: arc edges of cell arrangements, winding numbers of cell arrangements
-    static void compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+    static void compute_arrangement(const std::vector<Point<Scalar>> &vertices, const std::vector<Arc_Edge<Scalar>> &edges,
                                     // output
-                                    std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
+                                    std::vector<Point<Scalar>> &pts, std::vector<SubArc_Edge<Scalar>> &pEdges,
                                     std::vector<bool> &is_intersection_point,
-                                    std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
+                                    std::vector<std::vector<SubArc_Edge<Scalar>>> &edges_of_cell,
                                     std::vector<int> &windings);
 
     // subdivide input arcs by their intersections
-    static void subdivide_polyArc_by_intersection(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+    static void subdivide_polyArc_by_intersection(const std::vector<Point<Scalar>> &vertices, const std::vector<Arc_Edge<Scalar>> &edges,
                                              // output
-                                             std::vector<Point> &pts,
-                                             std::vector<SubArc_Edge> &pEdges,
+                                             std::vector<Point<Scalar>> &pts,
+                                             std::vector<SubArc_Edge<Scalar>> &pEdges,
                                              std::vector<bool> &is_intersection_point);
 
     // decompose 2D plane into arrangement cells
@@ -56,14 +59,14 @@ public:
     // ** i : index of original edge e
     // ** 2i+1: same direction as e, on the left side of e
     // ** 2i  : opposite direction of e, on the right side of e
-    static void decompose_into_cells(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &pEdges,
+    static void decompose_into_cells(const std::vector<Point<Scalar>> &pts, const std::vector<SubArc_Edge<Scalar>> &pEdges,
                                      // output
                                      std::vector<std::vector<size_t>> &eIn,
                                      std::vector<std::vector<size_t>> &eOut,
                                      std::vector<std::vector<size_t>> &cells);
 
     // compute winding numbers for arrangement cells
-    static void compute_cell_windings(const std::vector<SubArc_Edge> &pEdges,
+    static void compute_cell_windings(const std::vector<SubArc_Edge<Scalar>> &pEdges,
                                       const std::vector<std::vector<size_t>> &eIn,
                                       const std::vector<std::vector<size_t>> &eOut,
                                       const std::vector<std::vector<size_t>> &cells,
@@ -81,7 +84,7 @@ private:
 
     // find the unbounded cell
     // return: index of the unbounded cell
-    static size_t find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdges,
+    static size_t find_the_unbounded_cell(const std::vector<SubArc_Edge<Scalar>> &pEdges,
                                           const std::vector<std::vector<size_t>> &eIn,
                                           const std::vector<std::vector<size_t>> &eOut,
                                           const std::vector<std::vector<size_t>> &cells,

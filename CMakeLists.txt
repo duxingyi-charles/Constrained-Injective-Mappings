@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15.0)
 project(TLC VERSION 0.1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 14)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Do not use shared lib.")
+#set(BUILD_SHARED_LIBS OFF CACHE BOOL "Do not use shared lib.")
 
 
 include(FetchContent)
@@ -17,7 +17,8 @@ find_package(autodiff)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/src SRC_LIST)
 
-add_library(arcOverlap STATIC ${SRC_LIST})
+#add_library(arcOverlap STATIC ${SRC_LIST})
+add_library(arcOverlap SHARED ${SRC_LIST})
 target_include_directories(arcOverlap PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(arcOverlap PUBLIC Eigen3::Eigen autodiff::autodiff)
 
@@ -42,9 +43,9 @@ target_link_libraries(arrangement_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::
 add_executable(arc_occupancy_test apps/arc_occupancy_test.cpp)
 target_link_libraries(arc_occupancy_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-find_library(MATH_LIBRARY m)
-if(MATH_LIBRARY)
-    target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
-    target_link_libraries(arc_arc_intersection_test PUBLIC ${MATH_LIBRARY})
-    target_link_libraries(subdivide_polyArc_test PUBLIC ${MATH_LIBRARY})
-endif()
+#find_library(MATH_LIBRARY m)
+#if(MATH_LIBRARY)
+#    target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
+#    target_link_libraries(arc_arc_intersection_test PUBLIC ${MATH_LIBRARY})
+#    target_link_libraries(subdivide_polyArc_test PUBLIC ${MATH_LIBRARY})
+#endif()

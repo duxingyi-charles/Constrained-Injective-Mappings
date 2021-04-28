@@ -7,26 +7,29 @@
 
 #include "Arrangement.h"
 
+template <typename Scalar>
 class Arc_Occupancy {
 public:
-    explicit Arc_Occupancy(double t) : param_theta(t) {};
+    Arc_Occupancy() = default;
+    explicit Arc_Occupancy(Scalar t) : param_theta(t) {};
     ~Arc_Occupancy() = default;
 
     // compute arc occupancy (static)
-    static double compute_arc_occupancy(const std::vector<Point> &vertices,
+    static Scalar compute_arc_occupancy(const std::vector<Point<Scalar>> &vertices,
                                         const std::vector<std::pair<size_t,size_t>> &edges,
-                                        double theta);
+                                        Scalar theta);
 
     // compute arc occupancy
-    double compute_arc_occupancy(const std::vector<Point> &vertices,
+    Scalar compute_arc_occupancy(const std::vector<Point<Scalar>> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
 
     // compute signed area of an arc loop
-    static double compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
+    static Scalar compute_arc_loop_area(const std::vector<Point<Scalar>> &pts,
+                                        const std::vector<SubArc_Edge<Scalar>> &edges);
 
 private:
     // arc angle
-    double param_theta;
+    Scalar param_theta;
 
 };
 

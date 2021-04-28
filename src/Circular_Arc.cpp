@@ -4,20 +4,25 @@
 
 #include "Circular_Arc.h"
 
-void Circular_Arc::update_arc() {
-    Eigen::Vector2d vec = end_point - start_point;
+// explicit instantiations
+template class Circular_Arc<double>;
+//
+
+template<typename Scalar>
+void Circular_Arc<Scalar>::update_arc() {
+    Vec2D<Scalar> vec = end_point - start_point;
     radius = vec.norm()/(2*sin(fabs(arc_angle)/2));
 
-    Eigen::Vector2d perpVec(-vec.y(), vec.x());
+    Vec2D<Scalar> perpVec(-vec.y(), vec.x());
     center = (start_point + end_point)/2 + perpVec/(2*tan(arc_angle/2));
 
-    start_angle = compute_vector_angle(start_point - center);
+    start_angle = compute_vector_angle<Scalar>(start_point - center);
     end_angle = start_angle + arc_angle;
 }
 
-
-Rectangle Circular_Arc::get_bounding_box() const {
-    double xmin, xmax, ymin, ymax;
+template<typename Scalar>
+Rectangle<Scalar> Circular_Arc<Scalar>::get_bounding_box() const {
+    Scalar xmin, xmax, ymin, ymax;
     // left
     if (is_angle_between(M_PI, start_angle, end_angle)) {
         xmin = center.x() - radius;
@@ -43,13 +48,14 @@ Rectangle Circular_Arc::get_bounding_box() const {
         ymax = fmax(start_point.y(), end_point.y());
     }
     //
-    return Rectangle(Point(xmin,ymin), Point(xmax,ymax));
+    return Rectangle(Point<Scalar>(xmin,ymin), Point<Scalar>(xmax,ymax));
 }
 
-std::pair<Point,Point_Arc_Location> Circular_Arc::get_most_left_point() const
+template <typename Scalar>
+std::pair<Point<Scalar>,Point_Arc_Location> Circular_Arc<Scalar>::get_most_left_point() const
 {
     if (is_angle_between(M_PI, start_angle, end_angle)) {
-        return std::make_pair(Point(center.x()-radius,center.y()), Middle);
+        return std::make_pair(Point<Scalar>(center.x()-radius,center.y()), Middle);
     } else {
         if (start_point.x() < end_point.x()) {
             return std::make_pair(start_point, Start);
@@ -59,7 +65,8 @@ std::pair<Point,Point_Arc_Location> Circular_Arc::get_most_left_point() const
     }
 }
 
-Eigen::Vector2d Circular_Arc::get_out_tangent_vector() const
+template <typename Scalar>
+Vec2D<Scalar> Circular_Arc<Scalar>::get_out_tangent_vector() const
 {
     if (arc_angle > 0) {
         return rotate_90deg(end_point - center);
@@ -68,7 +75,8 @@ Eigen::Vector2d Circular_Arc::get_out_tangent_vector() const
     }
 }
 
-Eigen::Vector2d Circular_Arc::get_in_tangent_vector() const
+template <typename Scalar>
+Vec2D<Scalar> Circular_Arc<Scalar>::get_in_tangent_vector() const
 {
     if (arc_angle > 0) {
         return rotate_90deg(start_point - center);
@@ -77,14 +85,18 @@ Eigen::Vector2d Circular_Arc::get_in_tangent_vector() const
     }
 }
 
-Circular_Arc Circular_Arc::reverse(const Circular_Arc &c) {
+template <typename Scalar>
+Circular_Arc<Scalar> Circular_Arc<Scalar>::reverse(const Circular_Arc &c) {
     return Circular_Arc(c.end_point, c.start_point, -c.arc_angle,
                         c.center, c.radius, c.end_angle, c.start_angle);
 }
 
-void Circular_Arc::compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
-                          std::vector<Intersection_Point>& result)
+template <typename Scalar>
+void Circular_Arc<Scalar>::compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
+                          std::vector<Intersection_Point<Scalar>>& result)
 {
+    using Point = Point<Scalar>;
+
     result.clear();
     const Point &p1 = arc1.start_point;
     const Point &p2 = arc1.end_point;
@@ -112,33 +124,36 @@ void Circular_Arc::compute_intersection(const Circular_Arc &arc1, const Circular
     }
 }
 
-void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circular_Arc &arc2,
-                            std::vector<Intersection_Point>& result)
+template <typename Scalar>
+void Circular_Arc<Scalar>::find_all_intersections(const Circular_Arc &arc1, const Circular_Arc &arc2,
+                            std::vector<Intersection_Point<Scalar>>& result)
 {
+    using Point = Point<Scalar>;
+
     const Point &o1 = arc1.center;
     const Point &o2 = arc2.center;
-    double r1 = arc1.radius;
-    double r2 = arc2.radius;
+    Scalar r1 = arc1.radius;
+    Scalar r2 = arc2.radius;
 
-    double dist_o1o2 = (o1-o2).norm();
+    Scalar dist_o1o2 = (o1-o2).norm();
     if (dist_o1o2 > r1 + r2 || dist_o1o2 < fabs(r1-r2) || dist_o1o2 == 0) {
         // when dist_o1o2==0, the two arcs could have some overlap, but we don't treat that as intersection
         return;
     }
 
     // compute intersection of two circles
-    double c = 2 * r1 * dist_o1o2 * dist_o1o2;
-    double o1o2_diff_x = o1.x() - o2.x();
-    double o1o2_diff_y = o1.y() - o2.y();
-    double diff2 = r2*r2 - r1*r1 - dist_o1o2*dist_o1o2;
-    double sqroot = sqrt((r1+dist_o1o2+r2)*(r1+dist_o1o2-r2)*(r2+r1-dist_o1o2)*(r2-r1+dist_o1o2));
+    Scalar c = 2 * r1 * dist_o1o2 * dist_o1o2;
+    Scalar o1o2_diff_x = o1.x() - o2.x();
+    Scalar o1o2_diff_y = o1.y() - o2.y();
+    Scalar diff2 = r2*r2 - r1*r1 - dist_o1o2*dist_o1o2;
+    Scalar sqroot = sqrt((r1+dist_o1o2+r2)*(r1+dist_o1o2-r2)*(r2+r1-dist_o1o2)*(r2-r1+dist_o1o2));
 
-    std::vector<double> sinTheta_list, cosTheta_list; // theta indicates circular angles in arc1
+    std::vector<Scalar> sinTheta_list, cosTheta_list; // theta indicates circular angles in arc1
     if (fabs(o1.x()-o2.x()) > fabs(o1.y()-o2.y())) {
-        double a = diff2 * o1o2_diff_y;
-        double b = o1o2_diff_x * sqroot;
-        double sin1 = (a+b)/c;
-        double sin2 = (a-b)/c;
+        Scalar a = diff2 * o1o2_diff_y;
+        Scalar b = o1o2_diff_x * sqroot;
+        Scalar sin1 = (a+b)/c;
+        Scalar sin2 = (a-b)/c;
         if (fabs(sin1) <= 1) {
             sinTheta_list.push_back(sin1);
         }
@@ -146,14 +161,14 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
             sinTheta_list.push_back(sin2);
         }
 
-        for (double s : sinTheta_list) {
+        for (auto s : sinTheta_list) {
             cosTheta_list.push_back((diff2 - 2*r1*o1o2_diff_y * s)/(2*r1*o1o2_diff_x));
         }
     } else {
-        double a = diff2 * o1o2_diff_x;
-        double b = o1o2_diff_y * sqroot;
-        double cos1 = (a+b)/c;
-        double cos2 = (a-b)/c;
+        Scalar a = diff2 * o1o2_diff_x;
+        Scalar b = o1o2_diff_y * sqroot;
+        Scalar cos1 = (a+b)/c;
+        Scalar cos2 = (a-b)/c;
         if (fabs(cos1) <= 1) {
             cosTheta_list.push_back(cos1);
         }
@@ -161,21 +176,21 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
             cosTheta_list.push_back(cos2);
         }
 
-        for (double s : cosTheta_list) {
+        for (auto s : cosTheta_list) {
             sinTheta_list.push_back((diff2 - 2*r1*o1o2_diff_x * s)/(2*r1*o1o2_diff_y));
         }
     }
 
-    std::vector<double> sinPhi_list, cosPhi_list;  //phi indicates circular angles in arc2
-    for (double s : sinTheta_list) {
+    std::vector<Scalar> sinPhi_list, cosPhi_list;  //phi indicates circular angles in arc2
+    for (auto s : sinTheta_list) {
         sinPhi_list.push_back((o1o2_diff_y + r1 * s)/r2);
     }
-    for (double s : cosTheta_list) {
+    for (auto s : cosTheta_list) {
         cosPhi_list.push_back((o1o2_diff_x + r1 * s)/r2);
     }
 
     // extract circular angles from sin and cos
-    std::vector<double> theta_list, phi_list;
+    std::vector<Scalar> theta_list, phi_list;
     for (int i = 0; i < cosTheta_list.size(); ++i) {
         theta_list.push_back(compute_vector_angle(Point(cosTheta_list[i], sinTheta_list[i])));
     }
@@ -184,7 +199,7 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
     }
 
     // select circular angles in the range of input arc angles
-    std::vector<double> final_theta_list, final_phi_list;
+    std::vector<Scalar> final_theta_list, final_phi_list;
     for (int i = 0; i < theta_list.size(); ++i) {
         if (is_angle_between(theta_list[i], arc1.start_angle, arc1.end_angle) &&
             is_angle_between(phi_list[i], arc2.start_angle, arc2.end_angle)) {
@@ -195,10 +210,10 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
     
     // record intersections
     for (int i = 0; i < final_theta_list.size(); ++i) {
-        double theta = final_theta_list[i];
-        double phi = final_phi_list[i];
-        Eigen::Vector2d vec1(cos(theta), sin(theta));
-        Eigen::Vector2d vec2(cos(phi), sin(phi));
+        auto theta = final_theta_list[i];
+        auto phi = final_phi_list[i];
+        Vec2D<Scalar> vec1(cos(theta), sin(theta));
+        Vec2D<Scalar> vec2(cos(phi), sin(phi));
         result.emplace_back(Intersection_Point{
                 (o1 + r1 * vec1 + o2 + r2 * vec2)/2,
                 final_theta_list[i],
@@ -207,9 +222,12 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
 
 }
 
-void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2, const Point& p,
-                             std::vector<Intersection_Point>& result)
+template <typename Scalar>
+void Circular_Arc<Scalar>::find_other_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
+                                                   const Point<Scalar>& p,
+                             std::vector<Intersection_Point<Scalar>>& result)
 {
+    using Point = Point<Scalar>;
     const Point &o1 = arc1.center;
     const Point &o2 = arc2.center;
 
@@ -223,11 +241,11 @@ void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circu
     }
 
     // compute the other intersection between the two circles
-    double t = ((p-o1).dot(o2-o1))/((o2-o1).dot(o2-o1));
+    auto t = ((p-o1).dot(o2-o1))/((o2-o1).dot(o2-o1));
     Point proj_p = o1 + t * (o2 - o1);
     Point q = 2 * proj_p - p;
-    double theta = compute_vector_angle(q - o1);
-    double phi   = compute_vector_angle(q - o2);
+    auto theta = compute_vector_angle(q - o1);
+    auto phi   = compute_vector_angle(q - o2);
 
     // if the intersection lies on the arcs, save it to result
     if (is_angle_between(theta, arc1.start_angle, arc1.end_angle)
@@ -236,6 +254,7 @@ void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circu
     }
 }
 
-double Circular_Arc::get_segment_area() const {
+template <typename Scalar>
+Scalar Circular_Arc<Scalar>::get_segment_area() const {
     return 0.5 * radius * radius * (arc_angle - sin(arc_angle));
 }
