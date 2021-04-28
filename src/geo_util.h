@@ -9,6 +9,9 @@
 
 typedef Eigen::Vector2d Point;
 
+// return the vector after rotating 90 degree counter clockwise
+Eigen::Vector2d rotate_90deg(const Eigen::Vector2d &vec);
+
 // compute the angle mod 2pi
 // return: angle in [0, 2pi)
 double angle_mod_2PI(double a);

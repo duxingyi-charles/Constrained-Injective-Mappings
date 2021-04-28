@@ -4,6 +4,11 @@
 
 #include "geo_util.h"
 
+Eigen::Vector2d rotate_90deg(const Eigen::Vector2d &vec) {
+//    return Eigen::Vector2d(-(vec.y()), vec.x());
+    return {-(vec.y()), vec.x()};
+}
+
 
 double angle_mod_2PI(double a) {
     if (a >= 0) {
