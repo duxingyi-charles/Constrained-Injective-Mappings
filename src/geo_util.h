@@ -6,6 +6,7 @@
 #define TLC_GEO_UTIL_H
 
 #include <Eigen/Core>
+#include <vector>
 
 typedef Eigen::Vector2d Point;
 
@@ -35,6 +36,9 @@ bool is_angle_between_cw(double a, double a1, double a2);
 // test if angle a is between a1(included) and a2(not included)
 bool is_angle_between(double a, double a1, double a2);
 
+// compute total signed area of a polygon
+double compute_total_signed_area(const std::vector<Point> &vertices,
+                                 const std::vector<std::pair<size_t,size_t>> &edges);
 
 
 #endif //TLC_GEO_UTIL_H

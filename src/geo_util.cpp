@@ -81,3 +81,16 @@ bool is_angle_between(double a, double a1, double a2) {
     }
 }
 
+double compute_total_signed_area(const std::vector<Point> &vertices,
+                                 const std::vector<std::pair<size_t, size_t>> &edges) {
+    double area = 0;
+    for (const auto & e : edges) {
+        auto i = e.first;
+        auto j = e.second;
+        area += vertices[i].x() * vertices[j].y() - vertices[i].y() * vertices[j].x();
+    }
+    area /= 2;
+
+    return area;
+}
+
