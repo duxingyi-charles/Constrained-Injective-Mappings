@@ -41,15 +41,16 @@ void parse_input_file(const std::string &input_file,
 void export_result(const std::string &output_file,
                    const std::vector<Point> &pts, const std::vector<SubArc_Edge> &pEdges,
                    const std::vector<bool> &is_intersection_point,
-                   const std::vector<std::vector<size_t>> &cells)
+                   const std::vector<std::vector<size_t>> &cells,
+                   const std::vector<int> &windings)
 {
     using json = nlohmann::json;
     json output;
 
     // put data in json object
     output["pts"] = json::array();
-    for (int i = 0; i < pts.size(); ++i) {
-        output["pts"].push_back({pts[i].x(), pts[i].y()});
+    for (const auto & pt : pts) {
+        output["pts"].push_back({pt.x(), pt.y()});
 
     }
     output["is_intersection"] = json::array();
@@ -67,12 +68,17 @@ void export_result(const std::string &output_file,
     }
 
     output["cells"] = json::array();
-    for (int i = 0; i < cells.size(); ++i) {
+    for (const auto & cell : cells) {
         json js = json::array();
-        for (int j = 0; j < cells[i].size(); ++j) {
-            js.push_back(cells[i][j]);
+        for (unsigned long j : cell) {
+            js.push_back(j);
         }
         output["cells"].push_back(js);
+    }
+
+    output["windings"] = json::array();
+    for (int w : windings) {
+        output["windings"].push_back(w);
     }
 
     // write JSON
@@ -128,15 +134,18 @@ int main(int argc, char **argv)
 //    }
 
     // decompose into cells
+    std::vector<std::vector<size_t>> eIn;
+    std::vector<std::vector<size_t>> eOut;
     std::vector<std::vector<size_t>> cells;
-    Arrangement::decompose_into_cells(pts, pEdges, cells);
+    Arrangement::decompose_into_cells(pts, pEdges, eIn, eOut, cells);
+
+    // compute winding numbers for each cell
+    std::vector<int> windings;
+    Arrangement::compute_cell_windings(pEdges, eIn, eOut, cells, windings);
 
 
     // output result
-    export_result(args.output_file, pts, pEdges, is_intersection_point, cells);
-
-
-
+    export_result(args.output_file, pts, pEdges, is_intersection_point, cells, windings);
 
     return 0;
 }
