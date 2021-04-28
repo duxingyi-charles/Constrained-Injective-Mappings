@@ -33,8 +33,13 @@ public:
     ~Arrangement() = default;
 
     // compute self-arrangement of a circular arc loop
-    // save result as internal states
-    void compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges);
+    // return: arc edges of cell arrangements, winding numbers of cell arrangements
+    static void compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+                                    // output
+                                    std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
+                                    std::vector<bool> &is_intersection_point,
+                                    std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
+                                    std::vector<int> &windings);
 
     // subdivide input arcs by their intersections
     static void subdivide_polyArc_by_intersection(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
@@ -53,7 +58,17 @@ public:
     // ** 2i  : opposite direction of e, on the right side of e
     static void decompose_into_cells(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &pEdges,
                                      // output
+                                     std::vector<std::vector<size_t>> &eIn,
+                                     std::vector<std::vector<size_t>> &eOut,
                                      std::vector<std::vector<size_t>> &cells);
+
+    // compute winding numbers for arrangement cells
+    static void compute_cell_windings(const std::vector<SubArc_Edge> &pEdges,
+                                      const std::vector<std::vector<size_t>> &eIn,
+                                      const std::vector<std::vector<size_t>> &eOut,
+                                      const std::vector<std::vector<size_t>> &cells,
+                                      // output
+                                      std::vector<int> &windings);
 
 private:
     // trace half-edges into chains
@@ -64,6 +79,13 @@ private:
                       // output
                       std::vector<std::vector<size_t>> &chains);
 
+    // find the unbounded cell
+    // return: index of the unbounded cell
+    static size_t find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdges,
+                                          const std::vector<std::vector<size_t>> &eIn,
+                                          const std::vector<std::vector<size_t>> &eOut,
+                                          const std::vector<std::vector<size_t>> &cells,
+                                          const std::vector<size_t> &cell_of_hE);
 };
 
 

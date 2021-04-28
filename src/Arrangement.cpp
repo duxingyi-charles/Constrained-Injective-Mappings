@@ -3,26 +3,49 @@
 //
 
 #include <cassert>
-
+#include <map>
+#include <queue>
 #include <algorithm>
+#include <limits>
 #include "Arrangement.h"
 
-void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges)
+void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+                                      std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
+                                      std::vector<bool> &is_intersection_point,
+                                      std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
+                                      std::vector<int> &windings)
 {
     // step 1: subdivide input arcs by their intersections
-    std::vector<Point> pts;
-    std::vector<SubArc_Edge> pEdges;
-    std::vector<bool> is_intersection_point;
     subdivide_polyArc_by_intersection(vertices, edges, pts, pEdges,is_intersection_point);
 
     // step 2: get all arrangement cells
+    std::vector<std::vector<size_t>> eIn;
+    std::vector<std::vector<size_t>> eOut;
     std::vector<std::vector<size_t>> cells;
-    decompose_into_cells(pts, pEdges, cells);
+    decompose_into_cells(pts, pEdges, eIn, eOut, cells);
 
-    // todo: step 3: compute winding numbers for each cell
+    // convert each cell from a list of half-edge indices to a list arc edges
+    edges_of_cell.clear();
+    edges_of_cell.reserve(cells.size());
+    for (const auto & hEdges : cells) {
+        edges_of_cell.emplace_back();
+        auto &es = edges_of_cell.back();
+        for (auto hE : hEdges) {
+            // create SubArc_Edge for half-edge
+            // here, SubArc_Edge.parent_id record the index of the original edge in pEdges
+            if (hE%2 == 0) {
+                const auto &pEdge = pEdges[hE/2];
+                es.emplace_back(SubArc_Edge{pEdge.id2, pEdge.id1, hE/2,
+                                            Circular_Arc::reverse(pEdge.arc)});
+            } else {
+                es.emplace_back(pEdges[(hE-1)/2]);
+                es.back().parent_id = (hE-1)/2;
+            }
+        }
+    }
 
-    // save results
-
+    // step 3: compute winding numbers for each cell
+    compute_cell_windings(pEdges, eIn, eOut, cells, windings);
 
 }
 
@@ -126,11 +149,16 @@ void Arrangement::subdivide_polyArc_by_intersection(
 }
 
 void Arrangement::decompose_into_cells(const std::vector<Point> &vertices, const std::vector<SubArc_Edge> &edges,
+                                       std::vector<std::vector<size_t>> &eIn,
+                                       std::vector<std::vector<size_t>> &eOut,
                                        std::vector<std::vector<size_t>> &cells)
 {
     // find in-coming and out-going edges for each vertex
-    std::vector<std::vector<size_t>> eIn(vertices.size());
-    std::vector<std::vector<size_t>> eOut(vertices.size());
+    eIn.clear();
+    eIn.resize(vertices.size());
+    eOut.clear();
+    eOut.resize(vertices.size());
+
 
     for (int ei = 0; ei < edges.size(); ++ei) {
         eIn[edges[ei].id2].push_back(ei);
@@ -220,4 +248,123 @@ void Arrangement::trace_chains(const std::vector<size_t> &next_hEdge, std::vecto
             }
         }
     }
+}
+
+void Arrangement::compute_cell_windings(const std::vector<SubArc_Edge> &pEdges,
+                                        const std::vector<std::vector<size_t>> &eIn,
+                                        const std::vector<std::vector<size_t>> &eOut,
+                                        const std::vector<std::vector<size_t>> &cells,
+                                        std::vector<int> &windings)
+{
+    // map: half-edge index -> cell index
+    std::vector<size_t> cell_of_hE(2*pEdges.size(),0);
+    for (int i = 0; i < cells.size(); ++i) {
+        for (const auto h : cells[i]) {
+            cell_of_hE[h] = i;
+        }
+    }
+
+    // find the unbounded cell
+    size_t unbound_cell_id = find_the_unbounded_cell(pEdges, eIn, eOut, cells, cell_of_hE);
+    windings.clear();
+    windings.resize(cells.size(), 0);
+    windings[unbound_cell_id] = 0;
+
+    // build cell adjacency list
+    // adjacent_cells[i][j] is the half-edge between cell i and cell j
+    std::vector<std::map<size_t,size_t>> adjacent_cells(cells.size());
+    for (int i = 0; i < pEdges.size(); ++i) {
+        adjacent_cells[cell_of_hE[2*i+1]][cell_of_hE[2*i]] = 2*i + 1;
+        adjacent_cells[cell_of_hE[2*i]][cell_of_hE[2*i+1]] = 2*i;
+    }
+
+    // propagate winding numbers on the cell adjacency graph
+    std::queue<size_t> Q;
+    std::vector<bool> is_visited(cells.size(), false);
+
+    Q.push(unbound_cell_id);
+    is_visited[unbound_cell_id] = true;
+    while (!Q.empty()) {
+        auto cell_id = Q.front();
+        Q.pop();
+        for (const auto &c : adjacent_cells[cell_id]) {
+            auto c_id = c.first;
+            auto hEdge_id = c.second;
+            if (!is_visited[c_id]) {
+                is_visited[c_id] = true;
+                if (hEdge_id%2 == 0) {
+                    windings[c_id] = windings[cell_id] + 1;
+                } else {
+                    windings[c_id] = windings[cell_id] - 1;
+                }
+                Q.push(c_id);
+            }
+        }
+    }
+
+}
+
+
+size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdges,
+                                            const std::vector<std::vector<size_t>> &eIn,
+                                            const std::vector<std::vector<size_t>> &eOut,
+                                            const std::vector<std::vector<size_t>> &cells,
+                                            const std::vector<size_t> &cell_of_hE)
+{
+    // find the arc farthest to the left
+    Point most_left_point(std::numeric_limits<double>::infinity(), 0);
+    size_t most_left_edge_id;
+    Point_Arc_Location most_left_location;
+
+    for (int i = 0; i < pEdges.size(); ++i) {
+        std::pair<Point,Point_Arc_Location> left_point_info = pEdges[i].arc.get_most_left_point();
+        if (left_point_info.first.x() < most_left_point.x()) {
+            most_left_point = left_point_info.first;
+            most_left_edge_id = i;
+            most_left_location = left_point_info.second;
+        }
+    }
+
+    // pick out the unbounded cell
+    size_t unbounded_cell_id;
+    double theta1 = pEdges[most_left_edge_id].arc.get_start_angle();
+    double theta2 = pEdges[most_left_edge_id].arc.get_end_angle();
+
+    if (most_left_location == Middle) {
+        if (theta1 < theta2) {
+            // counter clockwise arc
+            unbounded_cell_id = cell_of_hE[2*most_left_edge_id];
+        } else {
+            unbounded_cell_id = cell_of_hE[2*most_left_edge_id+1];
+        }
+    } else {
+        size_t most_left_vert_id = (most_left_location == Start) ?
+                                   pEdges[most_left_edge_id].id1 :
+                                   pEdges[most_left_edge_id].id2;
+        assert(eIn[most_left_vert_id].size() == 1);
+
+        auto in_edge_id = eIn[most_left_vert_id][0];
+        auto out_edge_id = eOut[most_left_vert_id][0];
+
+        auto in_vec = pEdges[in_edge_id].arc.get_out_tangent_vector();
+        auto out_vec = pEdges[out_edge_id].arc.get_in_tangent_vector();
+
+        double cross_product = in_vec.x()*out_vec.y() - in_vec.y()*out_vec.x();
+        if (cross_product > 0) {
+            // left turn
+            unbounded_cell_id = cell_of_hE[2*in_edge_id];
+        } else if (cross_product < 0) {
+            // right turn
+            unbounded_cell_id = cell_of_hE[2*in_edge_id+1];
+        } else {
+            // co-linear
+            if ((theta2-theta1)*(in_vec.dot(out_vec)) > 0) {
+                unbounded_cell_id = cell_of_hE[2*in_edge_id];
+            } else {
+                unbounded_cell_id = cell_of_hE[2*in_edge_id+1];
+            }
+        }
+    }
+
+    return unbounded_cell_id;
 }
