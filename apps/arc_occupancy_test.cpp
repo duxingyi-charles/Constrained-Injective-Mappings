@@ -43,7 +43,8 @@ void parse_input_file(const std::string &input_file,
 }
 
 void export_result(const std::string &output_file, double occupancy,
-                   const Eigen::VectorXd &grad, const Eigen::MatrixXd &Hess)
+                   const Eigen::VectorXd &grad)
+//                   ,const Eigen::MatrixXd &Hess)
 {
     using json = nlohmann::json;
     json output;
@@ -56,14 +57,14 @@ void export_result(const std::string &output_file, double occupancy,
         output["grad"].push_back(grad[i]);
     }
 
-    output["Hess"] = json::array();
-    for (int i = 0; i < Hess.rows(); ++i) {
-        json jrow = json::array();
-        for (int j = 0; j < Hess.cols(); ++j) {
-            jrow.push_back(Hess(i,j));
-        }
-        output["Hess"].push_back(jrow);
-    }
+//    output["Hess"] = json::array();
+//    for (int i = 0; i < Hess.rows(); ++i) {
+//        json jrow = json::array();
+//        for (int j = 0; j < Hess.cols(); ++j) {
+//            jrow.push_back(Hess(i,j));
+//        }
+//        output["Hess"].push_back(jrow);
+//    }
 
     // write JSON
     std::ofstream fout(output_file);
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
 //        std::cout << "{ " << dx << ", " << dy << " }" << std::endl;
 //    }
 
-    Eigen::VectorXvar grad;
+    Eigen::VectorXd grad;
     {
         ScopedTimer<> timer("gradient");
         grad = autodiff::gradient(occupancy, flatten_verts);
@@ -131,12 +132,12 @@ int main(int argc, char **argv)
 //    }
 
     // Hessian (and gradient)
-    Eigen::VectorXd g;
-    Eigen::MatrixXd H;
-    {
-        ScopedTimer<> timer("Hessian");
-        H = autodiff::hessian(occupancy, flatten_verts, g);
-    }
+//    Eigen::VectorXd g;
+//    Eigen::MatrixXd H;
+//    {
+//        ScopedTimer<> timer("Hessian");
+//        H = autodiff::hessian(occupancy, flatten_verts, g);
+//    }
 //    std::cout << "g = \n" << std::endl;
 //    for (int i = 0; i < verts.size(); ++i) {
 //        std::cout << "{ " << g[2*i] << ", " << g[2*i+1] << " }" << std::endl;
@@ -146,7 +147,7 @@ int main(int argc, char **argv)
 
 
     // output result
-    export_result(args.output_file, occu_val, g, H);
+    export_result(args.output_file, occu_val, grad);
 
     return 0;
 }
