@@ -17,6 +17,13 @@ public:
                                         const std::vector<std::pair<size_t,size_t>> &edges,
                                         double theta);
 
+    // compute arc occupancy and its gradient wrt. input vertices
+    static double compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
+                                                      const std::vector<std::pair<size_t,size_t>> &edges,
+                                                      double theta,
+                                                      // output
+                                                      Eigen::Matrix2Xd &grad);
+
     // compute arc occupancy
     double compute_arc_occupancy(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
@@ -27,6 +34,10 @@ public:
 private:
     // arc angle
     double param_theta;
+
+    // compute signed area of an arc loop and update the gradient
+    static double compute_arc_loop_area_with_gradient(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges,
+                                                      Eigen::Matrix2Xd &dArea_dp, Eigen::VectorXd &dArea_dr2);
 
 };
 
