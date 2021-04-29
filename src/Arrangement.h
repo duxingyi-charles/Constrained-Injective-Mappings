@@ -38,6 +38,8 @@ public:
                                     // output
                                     std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
                                     std::vector<bool> &is_intersection_point,
+                                    std::vector<int>  &arc1_of_intersection,
+                                    std::vector<int>  &arc2_of_intersection,
                                     std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
                                     std::vector<int> &windings);
 
@@ -46,7 +48,9 @@ public:
                                              // output
                                              std::vector<Point> &pts,
                                              std::vector<SubArc_Edge> &pEdges,
-                                             std::vector<bool> &is_intersection_point);
+                                             std::vector<bool> &is_intersection_point,
+                                             std::vector<int>  &arc1_of_intersection,
+                                             std::vector<int>  &arc2_of_intersection);
 
     // decompose 2D plane into arrangement cells
     // input: subdivided polyArc {pts, pEdges}

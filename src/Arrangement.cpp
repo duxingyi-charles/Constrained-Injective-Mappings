@@ -12,11 +12,14 @@
 void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
                                       std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
                                       std::vector<bool> &is_intersection_point,
+                                      std::vector<int>  &arc1_of_intersection,
+                                      std::vector<int>  &arc2_of_intersection,
                                       std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
                                       std::vector<int> &windings)
 {
     // step 1: subdivide input arcs by their intersections
-    subdivide_polyArc_by_intersection(vertices, edges, pts, pEdges,is_intersection_point);
+    subdivide_polyArc_by_intersection(vertices, edges,pts, pEdges,is_intersection_point,
+                                      arc1_of_intersection,arc2_of_intersection);
 
     // step 2: get all arrangement cells
     std::vector<std::vector<size_t>> eIn;
@@ -52,7 +55,9 @@ void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const 
 void Arrangement::subdivide_polyArc_by_intersection(
         const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
         std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
-        std::vector<bool> &is_intersection_point)
+        std::vector<bool> &is_intersection_point,
+        std::vector<int>  &arc1_of_intersection,
+        std::vector<int>  &arc2_of_intersection)
 {
     // init
     pts = vertices;
@@ -60,6 +65,11 @@ void Arrangement::subdivide_polyArc_by_intersection(
 
     is_intersection_point.clear();
     is_intersection_point.resize(pts.size(), false);
+
+    arc1_of_intersection.clear();
+    arc1_of_intersection.resize(pts.size(), -1); // arc_of_intersection[i] = -1 means pts[i] is not an intersection
+    arc2_of_intersection.clear();
+    arc2_of_intersection.resize(pts.size(), -1);
 
     typedef std::pair<size_t, double> PID_Angle_Pair;
     std::vector<std::vector<PID_Angle_Pair>> edge_intersection_list(edges.size()); // record intersections on each input arc edge
@@ -92,8 +102,9 @@ void Arrangement::subdivide_polyArc_by_intersection(
                 is_intersection_point.push_back(true);
                 edge_intersection_list[i].emplace_back(pts.size()-1, intersection.angle1);
                 edge_intersection_list[j].emplace_back(pts.size()-1, intersection.angle2);
-                // todo: intersectInfo
-
+                // intersectInfo
+                arc1_of_intersection.push_back(i);
+                arc2_of_intersection.push_back(j);
             }
         }
     }
