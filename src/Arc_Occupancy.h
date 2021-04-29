@@ -21,6 +21,9 @@ public:
     var compute_arc_occupancy(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
 
+    var compute_arc_occupancy(const Eigen::VectorXvar &vertices,
+                              const std::vector<std::pair<size_t,size_t>> &edges) const;
+
     // compute signed area of an arc loop
     static var compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
 

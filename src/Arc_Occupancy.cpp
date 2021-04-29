@@ -64,3 +64,19 @@ var Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
     //
     return occupancy;
 }
+
+var Arc_Occupancy::compute_arc_occupancy(const Eigen::VectorXvar &vertices,
+                          const std::vector<std::pair<size_t,size_t>> &edges) const
+{
+    // convert vertices to a vector of Point
+    std::vector<Point> verts;
+    auto n_vert = vertices.size() /2;
+    verts.reserve(n_vert);
+
+    for (int i = 0; i < n_vert; ++i) {
+        verts.emplace_back(vertices[2*i], vertices[2*i+1]);
+    }
+
+    //
+    return compute_arc_occupancy(verts, edges, param_theta);
+}
