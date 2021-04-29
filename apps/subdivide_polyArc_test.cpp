@@ -60,7 +60,7 @@ void export_result(const std::string &output_file,
     output["parent_edges"] = json::array();
     for (const auto &e : pEdges) {
         output["edges"].push_back({e.id1, e.id2});
-        output["angles"].push_back(e.arc_angle);
+        output["angles"].push_back(e.arc.get_arc_angle());
         output["parent_edges"].push_back(e.parent_id);
     }
 
@@ -104,7 +104,10 @@ int main(int argc, char **argv)
     std::vector<Point> pts;
     std::vector<SubArc_Edge> pEdges;
     std::vector<bool> is_intersection_point;
-    Arrangement::subdivide_polyArc_by_intersection(verts, edges, pts, pEdges, is_intersection_point);
+    std::vector<int> arc1_of_intersection;
+    std::vector<int> arc2_of_intersection;
+    Arrangement::subdivide_polyArc_by_intersection(verts, edges, pts, pEdges, is_intersection_point,
+                                                   arc1_of_intersection, arc2_of_intersection);
 
     // debug: check output
 //    std::cout << "pts: " << std::endl;

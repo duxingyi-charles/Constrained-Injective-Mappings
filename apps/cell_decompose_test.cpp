@@ -121,7 +121,10 @@ int main(int argc, char **argv)
     std::vector<Point> pts;
     std::vector<SubArc_Edge> pEdges;
     std::vector<bool> is_intersection_point;
-    Arrangement::subdivide_polyArc_by_intersection(verts, edges, pts, pEdges, is_intersection_point);
+    std::vector<int>  arc1_of_intersection;
+    std::vector<int>  arc2_of_intersection;
+    Arrangement::subdivide_polyArc_by_intersection(verts, edges, pts, pEdges, is_intersection_point,
+                                                   arc1_of_intersection, arc2_of_intersection);
 
     // debug: check output
 //    std::cout << "pts: " << std::endl;
