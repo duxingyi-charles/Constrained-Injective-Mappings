@@ -9,24 +9,24 @@
 
 class Arc_Occupancy {
 public:
-    explicit Arc_Occupancy(double t) : param_theta(t) {};
+    explicit Arc_Occupancy(var t) : param_theta(t) {};
     ~Arc_Occupancy() = default;
 
     // compute arc occupancy (static)
-    static double compute_arc_occupancy(const std::vector<Point> &vertices,
+    static var compute_arc_occupancy(const std::vector<Point> &vertices,
                                         const std::vector<std::pair<size_t,size_t>> &edges,
-                                        double theta);
+                                        var theta);
 
     // compute arc occupancy
-    double compute_arc_occupancy(const std::vector<Point> &vertices,
+    var compute_arc_occupancy(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
 
     // compute signed area of an arc loop
-    static double compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
+    static var compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
 
 private:
     // arc angle
-    double param_theta;
+    var param_theta;
 
 };
 
