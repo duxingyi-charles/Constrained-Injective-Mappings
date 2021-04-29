@@ -6,10 +6,12 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
+#include "ScopedTimer.h"
+
 #include "Arc_Occupancy.h"
 
 void parse_input_file(const std::string &input_file,
-                      std::vector<Point> &verts, std::vector<std::pair<size_t,size_t>> &edges, double &theta) {
+                      std::vector<Point> &verts, std::vector<std::pair<size_t,size_t>> &edges, var &theta) {
     using json = nlohmann::json;
     std::ifstream fin(input_file.c_str());
     if (!fin) {
@@ -22,11 +24,14 @@ void parse_input_file(const std::string &input_file,
     assert(input.contains("verts"));
     verts.clear();
     for (const auto &p : input["verts"]) {
-        verts.emplace_back(p[0], p[1]);
+        double x = p[0];
+        double y = p[1];
+        verts.emplace_back(x, y);
     }
 
     assert(input.contains("theta"));
-    theta = input["theta"];
+    double t = input["theta"];
+    theta = t;
 
     assert(input.contains("edges"));
     edges.clear();
@@ -37,13 +42,28 @@ void parse_input_file(const std::string &input_file,
     }
 }
 
-void export_result(const std::string &output_file, double occupancy)
+void export_result(const std::string &output_file, double occupancy,
+                   const Eigen::VectorXd &grad, const Eigen::MatrixXd &Hess)
 {
     using json = nlohmann::json;
     json output;
 
     // put data in json object
     output["occupancy"] = occupancy;
+
+    output["grad"] = json::array();
+    for (int i = 0; i < grad.size(); ++i) {
+        output["grad"].push_back(grad[i]);
+    }
+
+    output["Hess"] = json::array();
+    for (int i = 0; i < Hess.rows(); ++i) {
+        json jrow = json::array();
+        for (int j = 0; j < Hess.cols(); ++j) {
+            jrow.push_back(Hess(i,j));
+        }
+        output["Hess"].push_back(jrow);
+    }
 
     // write JSON
     std::ofstream fout(output_file);
@@ -68,37 +88,65 @@ int main(int argc, char **argv)
     // load input
     std::vector<Point> verts;
     std::vector<std::pair<size_t,size_t>> edges;
-    double theta;
+    var theta;
 
     parse_input_file(args.input_file, verts, edges, theta);
 
-    // debug: check input
-//    std::cout << "verts: " << std::endl;
-//    for (const auto & p : verts) {
-//        std::cout << "(" << p.x() << ", " << p.y() << ")" << std::endl;
-//    }
-//    std::cout << "edges: " << std::endl;
-//    for (const auto & e : edges) {
-//        std::cout << "(" << e.id1 << ", " << e.id2 << ")" << std::endl;
-//    }
+
+    //
+    Eigen::VectorXvar flatten_verts(verts.size()*2);
+    for (int i = 0; i < verts.size(); ++i) {
+        flatten_verts[2*i] = verts[i].x();
+        flatten_verts[2*i+1] = verts[i].y();
+    }
 
     // compute arc occupancy
-    double occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+//    var occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+    Arc_Occupancy obj(theta);
+    var occupancy;
+    {
+        ScopedTimer<> timer("energy");
+        occupancy = obj.compute_arc_occupancy(flatten_verts, edges);
+    }
+    double occu_val = val(occupancy);
 
+    // derivative to scalar
+//    auto [dOccu_dTheta] = autodiff::derivatives(occupancy, autodiff::wrt(theta));
+//    std::cout << "dOccu_dTheta = " << dOccu_dTheta << std::endl;
 
-    // debug: check output
-//    std::cout << "pts: " << std::endl;
-//    for (const auto & p : pts) {
-//        std::cout << "(" << p.x() << ", " << p.y() << ")" << std::endl;
+    // gradient
+//    for (auto & v : verts) {
+//        auto [dx, dy] = autodiff::derivatives(occupancy, autodiff::wrt(v.x(), v.y()));
+//        std::cout << "{ " << dx << ", " << dy << " }" << std::endl;
 //    }
-//    std::cout << "sub edges: " << std::endl;
-//    for (const auto & e : pEdges) {
-//        std::cout << "(" << e.id1 << ", " << e.id2 << ")" << std::endl;
+
+    Eigen::VectorXvar grad;
+    {
+        ScopedTimer<> timer("gradient");
+        grad = autodiff::gradient(occupancy, flatten_verts);
+    }
+//    std::cout << "grad = \n" << std::endl;
+//    for (int i = 0; i < verts.size(); ++i) {
+//        std::cout << "{ " << grad[2*i] << ", " << grad[2*i+1] << " }" << std::endl;
 //    }
+
+    // Hessian (and gradient)
+    Eigen::VectorXd g;
+    Eigen::MatrixXd H;
+    {
+        ScopedTimer<> timer("Hessian");
+        H = autodiff::hessian(occupancy, flatten_verts, g);
+    }
+//    std::cout << "g = \n" << std::endl;
+//    for (int i = 0; i < verts.size(); ++i) {
+//        std::cout << "{ " << g[2*i] << ", " << g[2*i+1] << " }" << std::endl;
+//    }
+//    std::cout << "H = \n" << H << std::endl;
+
 
 
     // output result
-    export_result(args.output_file, occupancy);
+    export_result(args.output_file, occu_val, g, H);
 
     return 0;
 }
