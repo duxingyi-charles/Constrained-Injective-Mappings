@@ -67,6 +67,14 @@ public:
     static void find_other_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2, const Point& p,
                                         std::vector<Intersection_Point>& result);
 
+    // give p is an intersection of arc1 (centered at O1) and arc2 (centered at O2)
+    // compute dp/dO1, dp/dO2, dp/d(r1^2), dp/d(r2^2)
+    static void compute_intersection_gradient(const Point &p, const Point &O1, const Point &O2,
+                                              Eigen::Matrix2d &dp_dO1, Eigen::Matrix2d &dp_dO2,
+                                              Eigen::Vector2d &dp_dr1s, Eigen::Vector2d &dp_dr2s);
+
+    // compute derivatives
+    void update_derivatives();
 
 
 
@@ -77,6 +85,11 @@ public:
     double get_end_angle() const { return end_angle; }
     Point  get_center() const { return center; }
     double get_radius() const { return radius; }
+
+    Eigen::Vector2d get_dr2_dP1() const { return dr2_dP1; }
+    Eigen::Vector2d get_dr2_dP2() const { return dr2_dP2; }
+    Eigen::Matrix2d get_dO_dP1()  const { return dO_dP1;  }
+    Eigen::Matrix2d get_dO_dP2()  const { return dO_dP2;  }
 
 private:
     // compute arc center, radius, start and end angle
@@ -92,6 +105,14 @@ private:
     double radius{};
     double start_angle{};
     double end_angle{};
+
+    // center's derivatives wrt. start and end point
+    Eigen::Matrix2d dO_dP1;
+    Eigen::Matrix2d dO_dP2;
+    // squared radius' derivatives wrt. start and end point
+    Eigen::Vector2d dr2_dP1;
+    Eigen::Vector2d dr2_dP2;
+
 
 };
 

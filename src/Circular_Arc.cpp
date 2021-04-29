@@ -239,3 +239,58 @@ void Circular_Arc::find_other_intersection(const Circular_Arc &arc1, const Circu
 double Circular_Arc::get_segment_area() const {
     return 0.5 * radius * radius * (arc_angle - sin(arc_angle));
 }
+
+void Circular_Arc::update_derivatives() {
+    // center's derivatives wrt. start point and end point
+    double t = 0.5/tan(arc_angle/2);
+    Eigen::Matrix2d R_mat;
+    R_mat << 0, -1,
+             1,  0;
+    R_mat *= t;
+    Eigen::Matrix2d I_mat;
+    I_mat << 0.5, 0,
+             0, 0.5;
+    dO_dP1 = I_mat - R_mat;
+    dO_dP2 = I_mat + R_mat;
+
+    // squared radius' derivatives wrt . start point and end point
+    dr2_dP1 = (start_point - end_point)/(1-cos(arc_angle));
+    dr2_dP2 = -dr2_dP1;
+
+}
+
+void
+Circular_Arc::compute_intersection_gradient(const Point &p, const Point &O1, const Point &O2,
+                                            Eigen::Matrix2d &dp_dO1,Eigen::Matrix2d &dp_dO2,
+                                            Eigen::Vector2d &dp_dr1s,Eigen::Vector2d &dp_dr2s)
+{
+    auto px = p.x(), py = p.y();
+    auto o1x = O1.x(), o1y = O1.y();
+    auto o2x = O2.x(), o2y = O2.y();
+
+    // dp/dO1
+    auto d = -(o2y*px) + o1y*(-o2x + px) + o1x*(o2y - py) + o2x*py;
+    dp_dO1(0,0) = (o1x - px) * (o2y - py);
+    dp_dO1(0,1) = (o1y - py) * (o2y - py);
+    dp_dO1(1,0) = (o1x - px) * (px - o2x);
+    dp_dO1(1,1) = (o2x - px) * (py - o1y);
+    dp_dO1 /= d;
+
+    // dp/dO2
+    dp_dO2(0,0) = (o2x - px) * (py - o1y);
+    dp_dO2(0,1) = (o2y - py) * (py - o1y);
+    dp_dO2(1,0) = (o1x - px) * (o2x - px);
+    dp_dO2(1,1) = (o1x - px) * (o2y - py);
+    dp_dO2 /= d;
+
+    // dp/d(r1^2)
+    dp_dr1s(0) = (py - o2y) / (2*d);
+    dp_dr1s(1) = (o2x - px) / (2*d);
+
+    // dp/d(r2^2)
+    dp_dr2s(0) = (o1y - py) / (2*d);
+    dp_dr2s(1) = (px - o1x) / (2*d);
+
+}
+
+
