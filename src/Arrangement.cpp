@@ -32,14 +32,13 @@ void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const 
         auto &es = edges_of_cell.back();
         for (auto hE : hEdges) {
             // create SubArc_Edge for half-edge
-            // here, SubArc_Edge.parent_id record the index of the original edge in pEdges
+            // here, SubArc_Edge.parent_id record the index of the input edge in [std::vector<Arc_Edge> edges]
             if (hE%2 == 0) {
                 const auto &pEdge = pEdges[hE/2];
-                es.emplace_back(SubArc_Edge{pEdge.id2, pEdge.id1, hE/2,
+                es.emplace_back(SubArc_Edge{pEdge.id2, pEdge.id1, pEdge.parent_id,
                                             Circular_Arc::reverse(pEdge.arc)});
             } else {
                 es.emplace_back(pEdges[(hE-1)/2]);
-                es.back().parent_id = (hE-1)/2;
             }
         }
     }
