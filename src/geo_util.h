@@ -40,6 +40,9 @@ bool is_angle_between(double a, double a1, double a2);
 double compute_total_signed_area(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges);
 
+double compute_total_signed_area_with_gradient(const std::vector<Point> &vertices,
+                                               const std::vector<std::pair<size_t,size_t>> &edges,
+                                               Eigen::Matrix2Xd &dArea_dv);
 
 #endif //TLC_GEO_UTIL_H
 

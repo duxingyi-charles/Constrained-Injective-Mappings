@@ -94,3 +94,21 @@ double compute_total_signed_area(const std::vector<Point> &vertices,
     return area;
 }
 
+double compute_total_signed_area_with_gradient(const std::vector<Point> &vertices,
+                                               const std::vector<std::pair<size_t, size_t>> &edges,
+                                               Eigen::Matrix2Xd &dArea_dv) {
+    // note: we don't reset dArea_dv at the beginning
+    double area = 0;
+    for (const auto & e : edges) {
+        auto i = e.first;
+        auto j = e.second;
+        area += vertices[i].x() * vertices[j].y() - vertices[i].y() * vertices[j].x();
+        // update derivatives
+        dArea_dv.col(i) += 0.5 * Eigen::Vector2d(vertices[j].y(), -(vertices[j].x()));
+        dArea_dv.col(j) += 0.5 * Eigen::Vector2d(-(vertices[i].y()), vertices[i].x());
+    }
+    area /= 2;
+
+    return area;
+}
+
