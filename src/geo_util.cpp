@@ -10,14 +10,25 @@ VarVec2d rotate_90deg(const VarVec2d &vec) {
 }
 
 
+//var angle_mod_2PI(var a) {
+//    if (a >= 0) {
+//        return fmod(a, 2*M_PI);
+//    } else {
+//        return 2*M_PI + fmod(a, 2*M_PI);
+//    }
+//}
+
 var angle_mod_2PI(var a) {
-    if (a >= 0) {
-        // todo: how to mod autodiff::var ?
-        return fmod(a, 2*M_PI);
-    } else {
-        return 2*M_PI + fmod(a, 2*M_PI);
+    var b = a;
+    while (b >= 2*M_PI) {
+        b -= 2*M_PI;
     }
+    while (b < 0) {
+        b += 2*M_PI;
+    }
+    return b;
 }
+
 
 var compute_vector_angle(const VarVec2d &p) {
     var x = p.x(), y = p.y();
