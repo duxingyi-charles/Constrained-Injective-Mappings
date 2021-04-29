@@ -6,6 +6,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
+#include "ScopedTimer.h"
 #include "Arc_Occupancy.h"
 
 void parse_input_file(const std::string &input_file,
@@ -83,7 +84,11 @@ int main(int argc, char **argv)
 //    }
 
     // compute arc occupancy
-    double occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+    double occupancy;
+    {
+        ScopedTimer<> timer("energy");
+        occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+    }
 
 
     // debug: check output
