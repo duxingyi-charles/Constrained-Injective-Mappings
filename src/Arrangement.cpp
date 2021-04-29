@@ -62,7 +62,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
     is_intersection_point.clear();
     is_intersection_point.resize(pts.size(), false);
 
-    typedef std::pair<size_t, double> PID_Angle_Pair;
+    typedef std::pair<size_t, var> PID_Angle_Pair;
     std::vector<std::vector<PID_Angle_Pair>> edge_intersection_list(edges.size()); // record intersections on each input arc edge
 
     // filter potentially intersecting arcs by bounding box
@@ -110,9 +110,9 @@ void Arrangement::subdivide_polyArc_by_intersection(
             // no intersection point in ei, copy the input edge
             pEdges.emplace_back(SubArc_Edge{edges[ei].id1, edges[ei].id2, ei, edges[ei].arc});
         } else {
-            double theta1 = edges[ei].arc.get_start_angle();
-            double theta2 = edges[ei].arc.get_end_angle();
-            double theta  = edges[ei].arc.get_arc_angle();
+            var theta1 = edges[ei].arc.get_start_angle();
+            var theta2 = edges[ei].arc.get_end_angle();
+            var theta  = edges[ei].arc.get_arc_angle();
 
             std::vector<PID_Angle_Pair> sorted_intersections;
             if (theta > 0) { // ccw rotation from theta1 to theta2
@@ -130,7 +130,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
 
             sorted_intersections.emplace_back(edges[ei].id2, theta);
             size_t last_vId = edges[ei].id1;
-            double last_angle = 0;
+            var last_angle = 0;
             for (const auto & pid_angle : sorted_intersections) {
                 pEdges.emplace_back(SubArc_Edge{last_vId, pid_angle.first, ei,
                                                 Circular_Arc(pts[last_vId],pts[pid_angle.first],
@@ -174,7 +174,7 @@ void Arrangement::decompose_into_cells(const std::vector<Point> &vertices, const
         // is the edge an in-coming edge for the vertex?
         bool is_in;
         // incident angle: angle of the vector tangent to the arc at the vertex
-        double angle;
+        var angle;
     };
     auto Incident_Edge_Data_greater_than = [](const Incident_Edge_Data &left, const Incident_Edge_Data &right)
     { return left.angle > right.angle; };
@@ -193,16 +193,16 @@ void Arrangement::decompose_into_cells(const std::vector<Point> &vertices, const
             // intersection vertex
             std::vector<Incident_Edge_Data> incident_edge_list;
             for (const auto id : in_edges) {
-                double arc_angle = edges[id].arc.get_arc_angle();
-                double angle2 = edges[id].arc.get_end_angle();
-                double incident_angle = angle2 + ((arc_angle > 0) ? (-M_PI_2) : M_PI_2);
+                var arc_angle = edges[id].arc.get_arc_angle();
+                var angle2 = edges[id].arc.get_end_angle();
+                var incident_angle = angle2 + ((arc_angle > 0) ? (-M_PI_2) : M_PI_2);
                 incident_angle = angle_mod_2PI(incident_angle);
                 incident_edge_list.emplace_back(Incident_Edge_Data{id, true, incident_angle});
             }
             for (const auto id : out_edges) {
-                double arc_angle = edges[id].arc.get_arc_angle();
-                double angle1 = edges[id].arc.get_start_angle();
-                double incident_angle = angle1 + ((arc_angle > 0) ? M_PI_2 : (-M_PI_2));
+                var arc_angle = edges[id].arc.get_arc_angle();
+                var angle1 = edges[id].arc.get_start_angle();
+                var incident_angle = angle1 + ((arc_angle > 0) ? M_PI_2 : (-M_PI_2));
                 incident_angle = angle_mod_2PI(incident_angle);
                 incident_edge_list.emplace_back(Incident_Edge_Data{id, false, incident_angle});
             }
@@ -312,7 +312,7 @@ size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdg
                                             const std::vector<size_t> &cell_of_hE)
 {
     // find the arc farthest to the left
-    Point most_left_point(std::numeric_limits<double>::infinity(), 0);
+    Point most_left_point(std::numeric_limits<var>::infinity(), 0);
     size_t most_left_edge_id;
     Point_Arc_Location most_left_location;
 
@@ -327,8 +327,8 @@ size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdg
 
     // pick out the unbounded cell
     size_t unbounded_cell_id;
-    double theta1 = pEdges[most_left_edge_id].arc.get_start_angle();
-    double theta2 = pEdges[most_left_edge_id].arc.get_end_angle();
+    var theta1 = pEdges[most_left_edge_id].arc.get_start_angle();
+    var theta2 = pEdges[most_left_edge_id].arc.get_end_angle();
 
     if (most_left_location == Middle) {
         if (theta1 < theta2) {
@@ -349,7 +349,7 @@ size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdg
         auto in_vec = pEdges[in_edge_id].arc.get_out_tangent_vector();
         auto out_vec = pEdges[out_edge_id].arc.get_in_tangent_vector();
 
-        double cross_product = in_vec.x()*out_vec.y() - in_vec.y()*out_vec.x();
+        var cross_product = in_vec.x()*out_vec.y() - in_vec.y()*out_vec.x();
         if (cross_product > 0) {
             // left turn
             unbounded_cell_id = cell_of_hE[2*in_edge_id];
