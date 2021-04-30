@@ -3,6 +3,7 @@
 //
 
 #include "geo_util.h"
+#include <set>
 
 Eigen::Vector2d rotate_90deg(const Eigen::Vector2d &vec) {
 //    return Eigen::Vector2d(-(vec.y()), vec.x());
@@ -112,3 +113,119 @@ double compute_total_signed_area_with_gradient(const std::vector<Point> &vertice
     return area;
 }
 
+double compute_Heron_tri_area(double d1, double d2, double d3) {
+    // sort d1,d2,d3 as a >= b >= c
+    double a, b, c;
+    if (d1 > d2) {
+        a = d1;
+        b = d2;
+    }
+    else {
+        a = d2;
+        b = d1;
+    }
+    c = d3;
+    if (d3 > b) {
+        c = b;
+        b = d3;
+        if (d3 > a) {
+            b = a;
+            a = d3;
+        }
+    }
+
+    a = sqrt(a);
+    b = sqrt(b);
+    c = sqrt(c);
+
+    return 0.25 * sqrt(abs((a + (b + c)) * (c - (a - b)) * (c + (a - b)) * (a + (b - c))));
+}
+
+double compute_tri_signed_area(const Point &p1, const Point &p2, const Point &p3) {
+    return 0.5 * (p3(0) * (p1(1) - p2(1)) + p1(0) * (p2(1) - p3(1)) + p2(0) * (p3(1) - p1(1)));
+}
+
+void compute_signed_tri_areas(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F, Eigen::VectorXd &areaList) {
+    int nf = F.cols();
+    areaList.resize(nf);
+    for (int i = 0; i < nf; ++i) {
+        const Point &p1 = V.col(F(0, i));
+        const Point &p2 = V.col(F(1, i));
+        const Point &p3 = V.col(F(2, i));
+        areaList(i) = compute_tri_signed_area(p1, p2, p3);
+    }
+}
+
+double compute_min_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F) {
+    Eigen::VectorXd areaList;
+    compute_signed_tri_areas(V, F, areaList);
+    return areaList.minCoeff();
+}
+
+double compute_total_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F) {
+    Eigen::VectorXd areaList;
+    compute_signed_tri_areas(V, F, areaList);
+    return areaList.sum();
+}
+
+double compute_total_unsigned_area(const Eigen::MatrixXd &V, const Eigen::Matrix3Xi &F) {
+    int nF = F.cols();
+    Eigen::Matrix3Xd D(3, nF);
+    compute_squared_edge_Length(V, F, D);
+
+    // compute triangle areas
+    double area = 0;
+    for (int i = 0; i < nF; ++i) {
+        area += compute_Heron_tri_area(D(0, i), D(1, i), D(2, i));
+    }
+    return area;
+}
+
+
+void compute_squared_edge_Length(const Eigen::MatrixXd &V, const Eigen::Matrix3Xi &F,
+                                 Eigen::Matrix3Xd &D) {
+    auto nf = F.cols();
+    // int simplexSize = F.rows();
+    // int n_edge = simplexSize * (simplexSize-1) / 2;
+    int n_edge = 3;
+
+    D.resize(n_edge, nf);
+    for (int i = 0; i < nf; ++i) {
+        auto v1 = V.col(F(0, i));
+        auto v2 = V.col(F(1, i));
+        auto v3 = V.col(F(2, i));
+        auto e1 = v2 - v3;
+        auto e2 = v3 - v1;
+        auto e3 = v1 - v2;
+        D(0, i) = e1.squaredNorm();
+        D(1, i) = e2.squaredNorm();
+        D(2, i) = e3.squaredNorm();
+    }
+}
+
+void
+extract_mesh_boundary_edges(const Eigen::Matrix3Xi &faces, std::vector<std::pair<size_t, size_t>> &boundary_edges)
+{
+    typedef std::pair<size_t,size_t> Edge;
+
+    // collect all half edges
+    std::set<Edge> half_edges;
+    for (int i = 0; i < faces.cols(); ++i) {
+        auto v1 = faces(0,i);
+        auto v2 = faces(1,i);
+        auto v3 = faces(2,i);
+
+        half_edges.emplace(v1,v2);
+        half_edges.emplace(v2,v3);
+        half_edges.emplace(v3,v1);
+    }
+
+    // boundary edges are those without an opposite half edge
+    boundary_edges.clear();
+    for (const auto & he : half_edges) {
+        Edge reverse_he(he.second, he.first);
+        if (half_edges.find(reverse_he) == half_edges.end()) {
+            boundary_edges.emplace_back(he);
+        }
+    }
+}

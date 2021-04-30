@@ -40,9 +40,40 @@ bool is_angle_between(double a, double a1, double a2);
 double compute_total_signed_area(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges);
 
+// compute total signed area of a polygon and its gradient wrt. polygon vertices
 double compute_total_signed_area_with_gradient(const std::vector<Point> &vertices,
                                                const std::vector<std::pair<size_t,size_t>> &edges,
                                                Eigen::Matrix2Xd &dArea_dv);
+
+// compute triangle area using (robust) Heron's formula
+// input: squared edge lengths of the triangle
+double compute_Heron_tri_area(double d1, double d2, double d3);
+
+// computed total signed area of a triangle mesh
+double compute_total_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F);
+
+// compute minimum signed area of a triangle mesh
+double compute_min_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F);
+
+// compute signed area of all triangles in a mesh
+void compute_signed_tri_areas(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
+                                Eigen::VectorXd &areaList);
+
+// compute signed area of a triangle
+// input: 2D coordinates of 3 points of triangle
+// return: signed area of the triangle
+double compute_tri_signed_area(const Point &p1, const Point &p2, const Point &p3);
+
+// compute total unsigned area of a triangle mesh
+double compute_total_unsigned_area(const Eigen::MatrixXd &V, const Eigen::Matrix3Xi &F);
+
+//
+void compute_squared_edge_Length(const Eigen::MatrixXd &V, const Eigen::Matrix3Xi &F,
+                                 Eigen::Matrix3Xd &D);
+
+//
+void extract_mesh_boundary_edges(const Eigen::Matrix3Xi &faces,
+                                 std::vector<std::pair<size_t,size_t>> &boundary_edges);
 
 #endif //TLC_GEO_UTIL_H
 
