@@ -45,6 +45,9 @@ target_link_libraries(arc_occupancy_test PUBLIC arcOverlap CLI11::CLI11 nlohmann
 add_executable(arc_occupancy_gradient_test apps/arc_occupancy_gradient_test.cpp)
 target_link_libraries(arc_occupancy_gradient_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
+add_executable(arcOverlap_test apps/arcOverlap_test.cpp)
+target_link_libraries(arcOverlap_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
