@@ -192,8 +192,7 @@ void Arrangement::decompose_into_cells(const std::vector<Point> &vertices, const
     for (int i = 0; i < vertices.size(); ++i) {
         const auto &in_edges = eIn[i];
         const auto &out_edges = eOut[i];
-//        if (in_edges.empty()) continue;
-        assert(!(in_edges.empty()));
+        if (in_edges.empty()) continue;
 
         if (in_edges.size() == 1) {
             // degree-2 vertex
