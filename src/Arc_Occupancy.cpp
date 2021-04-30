@@ -209,3 +209,48 @@ Arc_Occupancy::compute_arc_loop_area_with_gradient(const std::vector<Point> &pts
     //
     return polygon_area + arc_seg_area;
 }
+
+double Arc_Occupancy::compute_arc_curve_segment_area(const std::vector<Point> &vertices,
+                                                     const std::vector<std::pair<size_t, size_t>> &edges) const {
+    double arc_seg_area = 0;
+
+    double theta_factor = 0.25 * (param_theta - sin(param_theta)) / (1 - cos(param_theta));
+
+    for (const auto & e: edges) {
+        const auto & p1 = vertices[e.first];
+        const auto & p2 = vertices[e.second];
+        arc_seg_area += theta_factor * (p1-p2).squaredNorm();
+    }
+
+    return arc_seg_area;
+}
+
+double Arc_Occupancy::compute_arc_curve_segment_area_with_gradient(const std::vector<Point> &vertices,
+                                                                   const std::vector<std::pair<size_t, size_t>> &edges,
+                                                                   Eigen::Matrix2Xd &grad) const {
+    double arc_seg_area = 0;
+    grad = Eigen::Matrix2Xd::Zero(2, vertices.size());
+
+    // compute arc curve segment area and gradient
+    double theta_factor = 0.25 * (param_theta - sin(param_theta)) / (1 - cos(param_theta));
+    double theta_factor2 = 2 * theta_factor;
+
+    for (const auto & e: edges) {
+        const auto & p1 = vertices[e.first];
+        const auto & p2 = vertices[e.second];
+        const auto & e_vec = p2 - p1;
+        arc_seg_area += theta_factor * e_vec.squaredNorm();
+        grad.col(e.second) += theta_factor2 * e_vec;
+        grad.col(e.first)  -= theta_factor2 * e_vec;
+    }
+
+
+
+    return arc_seg_area;
+}
+
+double Arc_Occupancy::compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
+                                                          const std::vector<std::pair<size_t, size_t>> &edges,
+                                                          Eigen::Matrix2Xd &grad) {
+    return compute_arc_occupancy_with_gradient(vertices, edges, param_theta, grad);
+}

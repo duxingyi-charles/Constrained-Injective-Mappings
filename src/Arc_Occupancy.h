@@ -24,12 +24,28 @@ public:
                                                       // output
                                                       Eigen::Matrix2Xd &grad);
 
+    // compute arc occupancy and its gradient wrt. input vertices
+    double compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
+                                               const std::vector<std::pair<size_t,size_t>> &edges,
+                                               // output
+                                               Eigen::Matrix2Xd &grad);
+
     // compute arc occupancy
     double compute_arc_occupancy(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
 
     // compute signed area of an arc loop
     static double compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
+
+    // compute arc curve segment area
+    double compute_arc_curve_segment_area(const std::vector<Point> &vertices,
+                                 const std::vector<std::pair<size_t,size_t>> &edges) const;
+
+    double compute_arc_curve_segment_area_with_gradient(const std::vector<Point> &vertices,
+                                                        const std::vector<std::pair<size_t,size_t>> &edges,
+                                                        //output
+                                                        Eigen::Matrix2Xd &grad) const;
+
 
 private:
     // arc angle
