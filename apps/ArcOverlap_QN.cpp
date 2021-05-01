@@ -312,14 +312,24 @@ public:
                       double alphaRatio,
                       double alpha,
                       double theta) :
-                      F(restF), solutionFound(false),
+                      F(restF), solutionFound(false), locally_injective_Found(false),
+                      first_locally_injective_iteration(-1), iteration_count(0),
+                      first_locally_injective_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
             record_vert(false), record_energy(false), record_minArea(false),
             vertRecord(0),energyRecord(0), minAreaRecord(0),
-            formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta)
+            formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
+            is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
+
+        // find boundary vertex
+        const auto& boundary_edges = formulation.get_boundary_edges();
+        for (const auto & e : boundary_edges) {
+            is_boundary_vertex[e.first] = true;
+            is_boundary_vertex[e.second] = true;
+        }
     };
 
     ~ Optimization_Data() = default;
@@ -332,8 +342,15 @@ public:
 //    Matrix3Xd restD;
     VectorXd x0;
 
+    std::vector<bool> is_boundary_vertex;
+
     bool solutionFound;
     double lastFunctionValue;
+
+    bool locally_injective_Found;
+    int  iteration_count;
+    int  first_locally_injective_iteration;
+    Matrix2Xd first_locally_injective_V;
 
     int nb_feval;
     int nb_geval;
@@ -344,19 +361,22 @@ public:
     bool record_vert;
     bool record_energy;
     bool record_minArea;
+    bool record_nb_winded_interior_vertices;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
+    std::vector<int> nb_winded_interior_vertices;
 
 
     // record information we cared about
     void set_record_flags(const std::vector<std::string> &record)
     {
-        for (std::vector<std::string>::const_iterator i = record.begin(); i != record.end(); ++i)
+        for (auto i = record.begin(); i != record.end(); ++i)
         {
             if (*i == "vert")    record_vert = true;
             if (*i == "energy")  record_energy = true;
             if (*i == "minArea") record_minArea = true;
+            if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
         }
     }
 
@@ -370,28 +390,89 @@ public:
             double minA = compute_min_signed_mesh_area(formulation.get_V(), F);
             minAreaRecord.push_back(minA);
         }
+        if (record_nb_winded_interior_vertices) {
+            std::vector<size_t> winded_vertices;
+            compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
+            nb_winded_interior_vertices.push_back(winded_vertices.size());
+        }
     }
 
     //custom stop criteria
     bool stopQ()
     {
-        if (stopCode == "all_good") return stopQ_all_good();
-        //default
-        return false;
+        iteration_count += 1;
+        if (stopCode == "no_flip_degenerate") {
+            return stopQ_no_flip_degenerate();
+        } else if (stopCode == "locally_injective") {
+            return stopQ_locally_injective();
+        } else if (stopCode == "globally_injective") {
+            return stopQ_globally_injective();
+        } else {
+            //default
+            return false;
+        }
     }
 
-    bool stopQ_all_good()
+    bool stopQ_no_flip_degenerate()
     {
-        bool good = true;
+        bool no_flip_degenerate = true;
 
         if (record_minArea && !minAreaRecord.empty()) {
-            if (minAreaRecord.back() <= 0) good = false;
+            if (minAreaRecord.back() <= 0) no_flip_degenerate = false;
         } else {
             double minA = compute_min_signed_mesh_area(formulation.get_V(), F);
-            if (minA <= 0) good = false;
+            if (minA <= 0) no_flip_degenerate = false;
         }
 
-        return good;
+        return no_flip_degenerate;
+    }
+
+    bool stopQ_locally_injective() {
+        if (!stopQ_no_flip_degenerate()) {
+            return false;
+        } else {
+            // check if there is any over-winding interior vertices
+            if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices.empty()) {
+                if (nb_winded_interior_vertices.back() == 0) {
+                    if (!locally_injective_Found) {
+                        locally_injective_Found = true;
+                        first_locally_injective_iteration = iteration_count;
+                        first_locally_injective_V = formulation.get_V();
+                    }
+                    return true;
+                }
+                else return false;
+            } else {
+                std::vector<size_t> winded_vertices;
+                compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
+                if (winded_vertices.empty()) {
+                    if (!locally_injective_Found) {
+                        locally_injective_Found = true;
+                        first_locally_injective_iteration = iteration_count;
+                        first_locally_injective_V = formulation.get_V();
+                    }
+                    return true;
+                }
+                else return false;
+            }
+        }
+    }
+
+    bool stopQ_globally_injective() {
+        if (!stopQ_locally_injective()) {
+            return false;
+        } else {
+            // record the first locally injective iteration
+            if (!locally_injective_Found) {
+                locally_injective_Found = true;
+                first_locally_injective_iteration = iteration_count;
+                first_locally_injective_V = formulation.get_V();
+            }
+            // check global injectivity:
+            // if no arc-arc intersection is found in the last energy/gradient evaluation,
+            // then global injectivity is surely achieved
+            return !(formulation.has_found_intersection);
+        }
     }
 
     //export result
@@ -408,6 +489,8 @@ public:
         out_file.precision(dbl::max_digits10);
 
         //write the file
+
+        /// resV
         const auto &V = formulation.get_V();
         auto nv = V.cols();
         auto ndim = V.rows();
@@ -417,6 +500,24 @@ public:
             for (int j = 0; j < ndim; ++j)
             {
                 out_file << V(j,i) << " ";
+            }
+        }
+        out_file << std::endl;
+
+        // first_locally_injective_iter
+        out_file << "first_locally_injective_iter " << 1 << " " << 1 << "\n";
+        out_file << first_locally_injective_iteration << " ";
+        out_file << std::endl;
+
+        /// first_locally_injective_V
+        nv = first_locally_injective_V.cols();
+        ndim = first_locally_injective_V.rows();
+        out_file << "first_locally_injective_V " << nv << " " << ndim << "\n";
+        for (int i = 0; i < nv; ++i)
+        {
+            for (int j = 0; j < ndim; ++j)
+            {
+                out_file << first_locally_injective_V(j,i) << " ";
             }
         }
         out_file << std::endl;
@@ -456,6 +557,17 @@ public:
             for (int i = 0; i < n_record; ++i)
             {
                 out_file << minAreaRecord[i] << " ";
+            }
+            out_file << std::endl;
+        }
+
+        if (record_nb_winded_interior_vertices)
+        {
+            auto n_record = nb_winded_interior_vertices.size();
+            out_file << "nbWindVert " << n_record << std::endl;
+            for (int i = 0; i < n_record; ++i)
+            {
+                out_file << nb_winded_interior_vertices[i] << " ";
             }
             out_file << std::endl;
         }
@@ -502,15 +614,16 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         data->nb_geval += 1;
     }
 
+    //record information
+    data->lastFunctionValue = energy;
+    data->record();
+
     // custom stop criterion
     if (data->stopQ())
     {
         data->solutionFound = true;
     }
 
-    //record information
-    data->lastFunctionValue = energy;
-    data->record();
     return energy;
 }
 
@@ -530,7 +643,7 @@ int main(int argc, char const *argv[])
 
     bool succeed = importData(dataFile,restV,initV,F,handles);
     if (!succeed) {
-        std::cout << "usage: findInjective [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: arcOverlap_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
     }
 
