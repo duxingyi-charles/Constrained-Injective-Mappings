@@ -579,16 +579,16 @@ std::vector<double> tet_grad(const std::vector<double> &d)
 }
 
 // 
-class LiftedData
+class Optimization_Data
 {
 public:
-	 LiftedData(std::vector<std::vector<double> > &restV,
-	 	std::vector<std::vector<double> > &initV,
-	 	std::vector<std::vector<unsigned> > &restF,
-	 	std::vector<unsigned> &handles,
-	 	std::string form,
-	 	double alphaRatio,
-	 	double alpha) :
+	 Optimization_Data(std::vector<std::vector<double> > &restV,
+                       std::vector<std::vector<double> > &initV,
+                       std::vector<std::vector<unsigned> > &restF,
+                       std::vector<unsigned> &handles,
+                       std::string form,
+                       double alphaRatio,
+                       double alpha) :
 	 V(initV), F(restF), freeI(0), solutionFound(false),
 	 lastFunctionValue(HUGE_VAL), stopCode("none"),
 	 nb_feval(0),nb_geval(0),
@@ -673,7 +673,7 @@ public:
 
 	 };
 
-	~ LiftedData() = default;
+	~ Optimization_Data() = default;
 	std::vector<std::vector<double> > V;
 	std::vector<unsigned> freeI;
 	std::vector<std::vector<unsigned> > F;
@@ -905,9 +905,9 @@ public:
 
 
 //
-double lifted_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
+double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
 {
-	LiftedData *data = (LiftedData *) my_func_data;
+	Optimization_Data *data = (Optimization_Data *) my_func_data;
 
 	if (data->solutionFound)
 	{
@@ -1089,7 +1089,7 @@ int main(int argc, char const *argv[])
 
 
 	//init
-    LiftedData data(restV,initV,F,handles,options.form,options.alphaRatio,options.alpha);
+    Optimization_Data data(restV, initV, F, handles, options.form, options.alphaRatio, options.alpha);
 
 	unsigned nv = restV.size();
 	unsigned nfree = nv - handles.size();
@@ -1117,7 +1117,7 @@ int main(int argc, char const *argv[])
 	data.set_record_flags(options.record);
 
 	//
-	opt.set_min_objective(lifted_func, &data);
+    opt.set_min_objective(ojbective_func, &data);
 
 	std::vector<double> x = data.x0;
 	double minf;
