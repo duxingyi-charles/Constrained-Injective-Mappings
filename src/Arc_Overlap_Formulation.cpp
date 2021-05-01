@@ -11,7 +11,9 @@ Arc_Overlap_Formulation::Arc_Overlap_Formulation(const MatrixXd &rest_vertices, 
                                                  const std::string &form, double alphaRatio,
                                                  double alpha, double theta) :
                                                  F(std::move(faces)), V(std::move(init_vertices)),
-                                                 arcOccupancy(theta)
+                                                 arcOccupancy(theta),
+                                                 // we assume there are intersection at the beginning
+                                                 has_found_intersection(true)
                                                  {
     // compute freeI: indices of free vertices
     int nV = rest_vertices.cols();
@@ -96,14 +98,14 @@ double Arc_Overlap_Formulation::compute_energy(const VectorXd &x) {
     // TLC
     double tlc_energy = tlc.compute_total_lifted_content(V);
 
-    // todo: make this more efficient by using only boundary vertices
+    //
     std::vector<Point> vertices(V.cols());
     for (int i = 0; i < V.cols(); ++i) {
         vertices[i] = V.col(i);
     }
     double arc_segment_area = arcOccupancy.compute_arc_curve_segment_area(vertices, boundary_edges);
     double arc_occupancy = arcOccupancy.compute_arc_occupancy(vertices, boundary_edges);
-
+    has_found_intersection = arcOccupancy.has_found_intersection;
 
     return tlc_energy + arc_segment_area - arc_occupancy;
 }
@@ -124,7 +126,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd &x, 
     Matrix2Xd tlc_grad;
     double tlc_energy = tlc.compute_total_lifted_content_with_gradient(V, tlc_grad);
 
-    // todo: make this more efficient by using only boundary vertices
+    //
     std::vector<Point> vertices(V.cols());
     for (int i = 0; i < V.cols(); ++i) {
         vertices[i] = V.col(i);
@@ -135,6 +137,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd &x, 
     Matrix2Xd arc_occupancy_grad;
     double arc_occupancy = arcOccupancy.compute_arc_occupancy_with_gradient(vertices, boundary_edges,
                                                                             arc_occupancy_grad);
+    has_found_intersection = arcOccupancy.has_found_intersection;
 
     // gradient
     Matrix2Xd m_grad = tlc_grad + arc_seg_grad - arc_occupancy_grad;

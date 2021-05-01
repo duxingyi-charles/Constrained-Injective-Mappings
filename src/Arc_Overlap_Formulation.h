@@ -38,6 +38,9 @@ public:
 
     const Matrix2Xd& get_V() const { return V; }
 
+    // whether arc-arc intersection is found in the most recent call of
+    // compute_energy() and compute_energy_with_gradient()
+    bool has_found_intersection;
 
 private:
     // x = Flatten(freeV)
