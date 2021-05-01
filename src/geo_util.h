@@ -77,5 +77,18 @@ void compute_squared_edge_Length(const Eigen::MatrixXd &V, const Eigen::Matrix3X
 void extract_mesh_boundary_edges(const Eigen::Matrix3Xi &faces,
                                  std::vector<std::pair<size_t,size_t>> &boundary_edges);
 
+// compute angle between from vector1 to vector2
+// return: angle in (-pi, pi]
+double compute_vec_vec_angle(const Eigen::Vector2d &vec1, const Eigen::Vector2d &vec2);
+
+
+
+// compute indices of over-winded interior vertices
+// input: 2D triangle mesh (V, F); is_boundary_vertex
+// output: indices of winded interior vertices
+void compute_winded_interior_vertices(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
+                                      const std::vector<bool> &is_boundary_vertex,
+                                      std::vector<size_t> winded_vertices);
+
 #endif //TLC_GEO_UTIL_H
 

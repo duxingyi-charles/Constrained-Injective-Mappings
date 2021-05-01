@@ -229,3 +229,40 @@ extract_mesh_boundary_edges(const Eigen::Matrix3Xi &faces, std::vector<std::pair
         }
     }
 }
+
+
+void compute_winded_interior_vertices(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
+                                      const std::vector<bool> &is_boundary_vertex,
+                                      std::vector<size_t> winded_vertices) {
+    // compute total signed angle at each vertex
+    Eigen::VectorXd vert_angles = Eigen::VectorXd::Zero(V.cols());
+    for (int i = 0; i < F.cols(); ++i) {
+        auto i1 = F(0,i);
+        auto i2 = F(1,i);
+        auto i3 = F(2,i);
+        const auto &p1 = V.col(i1);
+        const auto &p2 = V.col(i2);
+        const auto &p3 = V.col(i3);
+        vert_angles(i1) += compute_vec_vec_angle(p2-p1,p3-p1);
+        vert_angles(i2) += compute_vec_vec_angle(p3-p2,p1-p2);
+        vert_angles(i3) += compute_vec_vec_angle(p1-p3,p2-p3);
+    }
+
+    // find interior vertices with total angle != 2 pi
+    winded_vertices.clear();
+    for (size_t i = 0; i < V.cols(); ++i) {
+        if ((!is_boundary_vertex[i]) && (round(vert_angles(i)/(2*M_PI)) != 1)) {
+            winded_vertices.push_back(i);
+        }
+    }
+}
+
+double compute_vec_vec_angle(const Eigen::Vector2d &vec1, const Eigen::Vector2d &vec2) {
+    double cos = vec1.dot(vec2);
+    double sin = vec1.x() * vec2.y() - vec1.y() * vec2.x();
+    double angle = compute_vector_angle(Point(cos,sin));
+    if (angle > M_PI) {
+        angle = 2*M_PI - angle;
+    }
+    return angle;
+}
