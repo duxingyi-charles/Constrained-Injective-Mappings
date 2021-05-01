@@ -6,7 +6,7 @@
 #include "Arrangement.h"
 
 double Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
-                                            const std::vector<std::pair<size_t, size_t>> &edges) const {
+                                            const std::vector<std::pair<size_t, size_t>> &edges) {
 
     return compute_arc_occupancy(vertices, edges, param_theta);
 }
@@ -34,7 +34,6 @@ double Arc_Occupancy::compute_arc_loop_area(const std::vector<Point> &pts, const
 
 double Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
                                             const std::vector<std::pair<size_t, size_t>> &edges, double theta) {
-
     // create arc edges
     std::vector<Arc_Edge> arc_edges;
     arc_edges.reserve(edges.size());
@@ -56,6 +55,7 @@ double Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
                                      pts,pEdges,is_intersection_point,
                                      arc1_of_intersection,arc2_of_intersection,
                                      edges_of_cell,windings);
+    has_found_intersection = (pts.size() > vertices.size());
 
     // compute occupancy
     double occupancy = 0;
@@ -99,6 +99,7 @@ double Arc_Occupancy::compute_arc_occupancy_with_gradient(const std::vector<Poin
                                      pts,pEdges,is_intersection_point,
                                      arc1_of_intersection, arc2_of_intersection,
                                      edges_of_cell,windings);
+    has_found_intersection = (pts.size() > vertices.size());
 
     // compute occupancy and its derivatives wrt. pts and edge radii
     Eigen::Matrix2Xd dOccu_dp = Eigen::Matrix2Xd::Zero(2, pts.size());

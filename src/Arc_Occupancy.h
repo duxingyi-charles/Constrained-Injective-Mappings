@@ -9,30 +9,32 @@
 
 class Arc_Occupancy {
 public:
-    explicit Arc_Occupancy(double t) : param_theta(t) {};
+    explicit Arc_Occupancy(double t) : param_theta(t), has_found_intersection(true) {};
     ~Arc_Occupancy() = default;
 
-    // compute arc occupancy (static)
-    static double compute_arc_occupancy(const std::vector<Point> &vertices,
+    // compute arc occupancy
+    double compute_arc_occupancy(const std::vector<Point> &vertices,
                                         const std::vector<std::pair<size_t,size_t>> &edges,
                                         double theta);
 
     // compute arc occupancy and its gradient wrt. input vertices
-    static double compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
+    double compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
                                                       const std::vector<std::pair<size_t,size_t>> &edges,
                                                       double theta,
                                                       // output
                                                       Eigen::Matrix2Xd &grad);
 
     // compute arc occupancy and its gradient wrt. input vertices
+    // use built-in parameter theta
     double compute_arc_occupancy_with_gradient(const std::vector<Point> &vertices,
                                                const std::vector<std::pair<size_t,size_t>> &edges,
                                                // output
                                                Eigen::Matrix2Xd &grad);
 
     // compute arc occupancy
+    // use built-in parameter theta
     double compute_arc_occupancy(const std::vector<Point> &vertices,
-                                 const std::vector<std::pair<size_t,size_t>> &edges) const;
+                                 const std::vector<std::pair<size_t,size_t>> &edges);
 
     // compute signed area of an arc loop
     static double compute_arc_loop_area(const std::vector<Point> &pts, const std::vector<SubArc_Edge> &edges);
@@ -46,6 +48,9 @@ public:
                                                         //output
                                                         Eigen::Matrix2Xd &grad) const;
 
+    // whether arc-arc intersection is found in the most recent call of
+    // compute_arc_occupancy() or compute_arc_occupancy_with_gradient()
+    bool has_found_intersection;
 
 private:
     // arc angle
