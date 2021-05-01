@@ -36,6 +36,9 @@ public:
 
     VectorXi get_freeI() const { return freeI; }
 
+    const Matrix2Xd& get_V() const { return V; }
+
+
 private:
     // x = Flatten(freeV)
     void update_V(const Eigen::VectorXd &x);
