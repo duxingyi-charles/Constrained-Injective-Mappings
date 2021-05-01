@@ -8,6 +8,8 @@
 #include <Eigen/Core>
 #include <vector>
 
+#include "corecrt_math_defines.h"
+
 typedef Eigen::Vector2d Point;
 
 // return the vector after rotating 90 degree counter clockwise
