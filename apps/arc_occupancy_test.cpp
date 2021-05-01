@@ -86,8 +86,9 @@ int main(int argc, char **argv)
     // compute arc occupancy
     double occupancy;
     {
+        Arc_Occupancy arcOccupancy(theta);
         ScopedTimer<> timer("energy");
-        occupancy = Arc_Occupancy::compute_arc_occupancy(verts, edges, theta);
+        occupancy = arcOccupancy.compute_arc_occupancy(verts, edges);
     }
 
 

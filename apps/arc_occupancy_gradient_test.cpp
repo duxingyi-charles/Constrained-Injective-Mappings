@@ -83,8 +83,9 @@ int main(int argc, char **argv)
     double occupancy;
     Eigen::Matrix2Xd grad;
     {
+        Arc_Occupancy arcOccupancy(theta);
         ScopedTimer<> timer("energy + gradient");
-        occupancy = Arc_Occupancy::compute_arc_occupancy_with_gradient(verts, edges, theta, grad);
+        occupancy = arcOccupancy.compute_arc_occupancy_with_gradient(verts, edges, grad);
     }
 
 
