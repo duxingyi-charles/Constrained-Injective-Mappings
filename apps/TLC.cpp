@@ -786,12 +786,12 @@ public:
 	//custom stop criteria
 	bool stopQ()
 	{
-		if (stopCode == "all_good") return stopQ_all_good();
+		if (stopCode == "all_good") return stopQ_no_flip_degenerate();
 		//default
 		return false;
 	}
 
-	bool stopQ_all_good()
+	bool stopQ_no_flip_degenerate()
 	{
 		bool good = true;
 		unsigned nF = F.size();
