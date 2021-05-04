@@ -12,6 +12,7 @@ include(cmake/nlohmann-json.cmake)
 include(cmake/nlopt.cmake)
 
 
+
 aux_source_directory(${PROJECT_SOURCE_DIR}/src SRC_LIST)
 
 add_library(arcOverlap STATIC ${SRC_LIST})
@@ -48,6 +49,34 @@ target_link_libraries(arcOverlap_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::j
 add_executable(arcOverlap_QN apps/ArcOverlap_QN.cpp)
 target_link_libraries(arcOverlap_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
+add_executable(arcOverlap_PN apps/ArcOverlap_PN.cpp)
+target_link_libraries(arcOverlap_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
+# suitesparse
+
+set(SUITESPARSE_INCLUDE_DIR /usr/local/include CACHE PATH "suitesparse include directory")
+target_include_directories(arcOverlap_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
+
+if (WIN32)
+    # ------------------------------------------------------------------
+    # Detect SuiteSparse libraries:
+    # If not found automatically, set SuiteSparse_DIR in CMake to the
+    # directory where SuiteSparse-config.cmake was installed.
+    # ------------------------------------------------------------------
+    find_package(SuiteSparse CONFIG REQUIRED)
+    target_link_libraries(arcOverlap_PN PRIVATE SuiteSparse::cholmod)
+else()
+    set(SUITESPARSE_LIB_DIR /usr/local/lib CACHE PATH "suitesparse library directory")
+    target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
+endif()
+
+# OpenMP
+#find_package(OpenMP)
+#if(OpenMP_CXX_FOUND)
+#    target_link_libraries(arcOverlap_PN PUBLIC OpenMP::OpenMP_CXX)
+#endif()
+
+# Math library
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
