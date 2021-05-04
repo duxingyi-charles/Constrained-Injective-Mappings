@@ -88,7 +88,7 @@ double compute_vec_vec_angle(const Eigen::Vector2d &vec1, const Eigen::Vector2d 
 // output: indices of winded interior vertices
 void compute_winded_interior_vertices(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
                                       const std::vector<bool> &is_boundary_vertex,
-                                      std::vector<size_t> winded_vertices);
+                                      std::vector<size_t> &winded_vertices);
 
 #endif //TLC_GEO_UTIL_H
 
