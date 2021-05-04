@@ -392,7 +392,7 @@ public:
             first_locally_injective_iteration(-1), iteration_count(0),
             first_locally_injective_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
-            nb_feval(0),nb_geval(0),
+            nb_feval(0),nb_geval(0), stop_type("unknown"),
             record_vert(false), record_energy(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_gradient(false),
             record_gradientNorm(false),record_searchDirection(false),record_searchNorm(false),
@@ -462,6 +462,9 @@ public:
 
     // save data
     bool save_vert;
+
+    //
+    std::string stop_type;
 
 
     // record information we cared about
@@ -561,19 +564,27 @@ public:
     }
 
     bool stopQ_globally_injective() {
-        if (!stopQ_locally_injective()) {
-            return false;
+        if (locally_injective_Found) {
+            // locally injective mesh is already found
+            if (!stopQ_no_flip_degenerate()) {
+                return false;
+            } else {
+                return !(formulation.has_found_intersection);
+            }
         } else {
-            // record the first locally injective iteration
-            if (!locally_injective_Found) {
+            if (!stopQ_locally_injective()) {
+                return false;
+            } else {
+                // record the first locally injective iteration
                 locally_injective_Found = true;
                 first_locally_injective_iteration = iteration_count;
                 first_locally_injective_V = formulation.get_V();
+
+                // check global injectivity:
+                // if no arc-arc intersection is found in the last energy/gradient evaluation,
+                // then global injectivity is surely achieved
+                return !(formulation.has_found_intersection);
             }
-            // check global injectivity:
-            // if no arc-arc intersection is found in the last energy/gradient evaluation,
-            // then global injectivity is surely achieved
-            return !(formulation.has_found_intersection);
         }
     }
 
@@ -803,12 +814,16 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
     if (data.stopQ())
     {
         data.solutionFound = true;
+        data.stop_type = "custom stop goal met";
         return;
     }
     // solver step monitor end
 
     //check gtol
-    if (grad.norm() < gtol_abs) return;
+    if (grad.norm() < gtol_abs) {
+        data.stop_type = "gtol reached";
+        return;
+    }
 
     // initialize solver
     CholmodSolver solver;
@@ -818,11 +833,13 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
     solver.factorize(mat);
     if (solver.info() != Success) {
         cout << "iter 0: decomposition failed" << endl;
+        data.stop_type = "solver.factorize fail";
         return;
     }
     VectorXd p = solver.solve(-grad);
     if (solver.info() != Success) {
         cout << "iter 0: solving failed" << endl;
+        data.stop_type = "solver.solve fail";
         return;
     }
     if (data.record_searchDirection) data.searchDirectionRecord.emplace_back(p);
@@ -835,8 +852,14 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
     if (data.record_stepSize) data.stepSizeRecord.push_back(step_size);
     if (data.record_stepNorm) data.stepNormRecord.push_back(p.norm() * step_size);
     //check ftol
-    if (fabs(energy_next - energy) < ftol_abs) return;
-    if (fabs((energy_next - energy) / energy) < ftol_rel) return;
+    if (fabs(energy_next - energy) < ftol_abs) {
+        data.stop_type = "ftol_abs reached";
+        return;
+    }
+    if (fabs((energy_next - energy) / energy) < ftol_rel) {
+        data.stop_type = "ftol_rel reached";
+        return;
+    }
 
 
     for (int i = 1; i < maxIter; ++i) {
@@ -851,21 +874,27 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         if (data.stopQ())
         {
             data.solutionFound = true;
+            data.stop_type = "custom stop goal met";
             return;
         }
         // solver step monitor end
 
         //check gtol
-        if (grad.norm() < gtol_abs) return;
+        if (grad.norm() < gtol_abs) {
+            data.stop_type = "gtol reached";
+            return;
+        }
 
         solver.factorize(mat);
         if (solver.info() != Success) {
             cout << "iter " << i << ": decomposition failed" << endl;
+            data.stop_type = "solver.factorize fail";
             return;
         }
         VectorXd p = solver.solve(-grad);
         if (solver.info() != Success) {
             cout << "iter " << i << ": solving failed" << endl;
+            data.stop_type = "solver.solve fail";
             return;
         }
         if (data.record_searchDirection) data.searchDirectionRecord.emplace_back(p);
@@ -879,9 +908,18 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         if (data.record_stepSize) data.stepSizeRecord.push_back(step_size);
         if (data.record_stepNorm) data.stepNormRecord.push_back(p.norm() * step_size);
         //check ftol
-        if (fabs(energy_next - energy) < ftol_abs) return;
-        if (fabs((energy_next - energy) / energy) < ftol_rel) return;
+        if (fabs(energy_next - energy) < ftol_abs) {
+            data.stop_type = "ftol_abs reached";
+            return;
+        }
+        if (fabs((energy_next - energy) / energy) < ftol_rel) {
+            data.stop_type = "ftol_rel reached";
+            return;
+        }
     }
+
+    // reach max iterations
+    data.stop_type = "max iteration reached";
 }
 
 
@@ -923,6 +961,7 @@ int main(int argc, char const *argv[]) {
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time difference: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()
               << " [microseconds]" << std::endl;
+    std::cout << "Stop: " << data.stop_type << std::endl;
 
 
     //export result
