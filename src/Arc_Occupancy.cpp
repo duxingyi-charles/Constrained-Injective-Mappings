@@ -245,8 +245,6 @@ double Arc_Occupancy::compute_arc_curve_segment_area_with_gradient(const std::ve
         grad.col(e.first)  -= theta_factor2 * e_vec;
     }
 
-
-
     return arc_seg_area;
 }
 
@@ -254,4 +252,44 @@ double Arc_Occupancy::compute_arc_occupancy_with_gradient(const std::vector<Poin
                                                           const std::vector<std::pair<size_t, size_t>> &edges,
                                                           Eigen::Matrix2Xd &grad) {
     return compute_arc_occupancy_with_gradient(vertices, edges, param_theta, grad);
+}
+
+double Arc_Occupancy::compute_arc_curve_segment_area(const std::vector<Point> &vertices,
+                                                     const std::vector<std::pair<size_t, size_t>> &edges,
+                                                     Eigen::VectorXd &segment_area_list) const {
+    segment_area_list.resize(edges.size());
+
+    double theta_factor = 0.25 * (param_theta - sin(param_theta)) / (1 - cos(param_theta));
+
+    for (int i = 0; i < edges.size(); ++i) {
+        const auto & p1 = vertices[edges[i].first];
+        const auto & p2 = vertices[edges[i].second];
+        segment_area_list(i) = theta_factor * (p1-p2).squaredNorm();
+    }
+
+    return segment_area_list.sum();
+}
+
+double Arc_Occupancy::compute_arc_curve_segment_area_with_gradient(const std::vector<Point> &vertices,
+                                                                   const std::vector<std::pair<size_t, size_t>> &edges,
+                                                                   Eigen::VectorXd &segment_area_list,
+                                                                   Eigen::Matrix2Xd &grad) const {
+//    double arc_seg_area = 0;
+    segment_area_list.resize(edges.size());
+    grad = Eigen::Matrix2Xd::Zero(2, vertices.size());
+
+    // compute arc curve segment area and gradient
+    double theta_factor = 0.25 * (param_theta - sin(param_theta)) / (1 - cos(param_theta));
+    double theta_factor2 = 2 * theta_factor;
+
+    for (int i = 0; i < edges.size(); ++i) {
+        const auto & p1 = vertices[edges[i].first];
+        const auto & p2 = vertices[edges[i].second];
+        const auto & e_vec = p2 - p1;
+        segment_area_list(i) = theta_factor * e_vec.squaredNorm();
+        grad.col(edges[i].second) += theta_factor2 * e_vec;
+        grad.col(edges[i].first)  -= theta_factor2 * e_vec;
+    }
+
+    return segment_area_list.sum();
 }

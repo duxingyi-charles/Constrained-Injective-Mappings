@@ -43,9 +43,20 @@ public:
     double compute_arc_curve_segment_area(const std::vector<Point> &vertices,
                                  const std::vector<std::pair<size_t,size_t>> &edges) const;
 
+    // compute arc curve segment area, record segment area for each edge
+    double compute_arc_curve_segment_area(const std::vector<Point> &vertices,
+                                          const std::vector<std::pair<size_t,size_t>> &edges,
+                                          Eigen::VectorXd &segment_area_list) const;
+
     double compute_arc_curve_segment_area_with_gradient(const std::vector<Point> &vertices,
                                                         const std::vector<std::pair<size_t,size_t>> &edges,
                                                         //output
+                                                        Eigen::Matrix2Xd &grad) const;
+
+    double compute_arc_curve_segment_area_with_gradient(const std::vector<Point> &vertices,
+                                                        const std::vector<std::pair<size_t,size_t>> &edges,
+                                                        //output
+                                                        Eigen::VectorXd &segment_area_list,
                                                         Eigen::Matrix2Xd &grad) const;
 
     // whether arc-arc intersection is found in the most recent call of
