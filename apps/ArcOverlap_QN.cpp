@@ -14,68 +14,10 @@
 #include <nlopt.hpp>
 
 #include "Arc_Overlap_Formulation.h"
+#include "optimization_util.h"
 
 using namespace Eigen;
 
-bool importData(const char* filename,
-                MatrixXd &restV,
-                Matrix2Xd &initV,
-                Matrix3Xi &F,
-                VectorXi &handles
-)
-{
-    std::ifstream in_file(filename);
-
-    if (! in_file.is_open()) {
-        std::cerr << "Failed to open " << filename << "!" << std::endl;
-        return false;
-    }
-
-    //read the file
-    size_t n, ndim;
-    // restV
-    in_file >> n >> ndim;
-    restV.resize(ndim, n);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < ndim; ++j) {
-            in_file >> restV(j,i);
-        }
-    }
-
-    //initV
-    in_file >> n >> ndim;
-    initV.resize(ndim,n);
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < ndim; ++j) {
-            in_file >> initV(j,i);
-        }
-
-    }
-
-    //F
-    size_t simplexSize;
-    in_file >> n >> simplexSize;
-    F.resize(simplexSize, n);
-    for (int i = 0; i < n; ++i)
-    {
-        for (int j = 0; j < simplexSize; ++j)
-        {
-            in_file >> F(j,i);
-        }
-    }
-
-    //handles
-    in_file >> n;
-    handles.resize(n);
-    for (int i = 0; i < n; ++i)
-    {
-        in_file >> handles(i);
-    }
-
-    in_file.close();
-
-    return true;
-}
 
 // solver options
 class NloptOptionManager
@@ -85,13 +27,13 @@ public:
     NloptOptionManager():
             form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-            maxeval(10000), algorithm("LBFGS"), stopCode("all_good"), record()
+            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {};
     //import options from file
     explicit NloptOptionManager(const char* filename):
             form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-            maxeval(10000), algorithm("LBFGS"), stopCode("all_good"), record()
+            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {
         if (!importOptions(filename))
         {
@@ -150,14 +92,14 @@ public:
         }
 
         //read the file
-        unsigned abnormal = 0;
+        std::string abnormal = "normal";
         std::string optName;
         while(true)
         {
             in_file >> optName;
             if (optName != "form")
             {
-                abnormal = 1;
+                abnormal = "form";
                 break;
             }
             in_file >> form;
@@ -165,7 +107,7 @@ public:
             in_file >> optName;
             if (optName != "alphaRatio")
             {
-                abnormal = 2;
+                abnormal = "alphaRatio";
                 break;
             }
             in_file >> alphaRatio;
@@ -173,14 +115,14 @@ public:
             in_file >> optName;
             if (optName != "alpha")
             {
-                abnormal = 3;
+                abnormal = "alpha";
                 break;
             }
             in_file >> alpha;
 
             in_file >> optName;
             if (optName != "theta") {
-                abnormal = 15;
+                abnormal = "theta";
                 break;
             }
             in_file >> theta;
@@ -188,7 +130,7 @@ public:
             in_file >> optName;
             if (optName != "ftol_abs")
             {
-                abnormal = 4;
+                abnormal = "ftol_abs";
                 break;
             }
             in_file >> ftol_abs;
@@ -196,7 +138,7 @@ public:
             in_file >> optName;
             if (optName != "ftol_rel")
             {
-                abnormal = 5;
+                abnormal = "ftol_rel";
                 break;
             }
             in_file >> ftol_rel;
@@ -204,7 +146,7 @@ public:
             in_file >> optName;
             if (optName != "xtol_abs")
             {
-                abnormal = 6;
+                abnormal = "xtol_abs";
                 break;
             }
             in_file >> xtol_abs;
@@ -212,7 +154,7 @@ public:
             in_file >> optName;
             if (optName != "xtol_rel")
             {
-                abnormal = 7;
+                abnormal = "xtol_rel";
                 break;
             }
             in_file >> xtol_rel;
@@ -220,7 +162,7 @@ public:
             in_file >> optName;
             if (optName != "algorithm")
             {
-                abnormal = 8;
+                abnormal = "algorithm";
                 break;
             }
             in_file >> algorithm;
@@ -228,7 +170,7 @@ public:
             in_file >> optName;
             if (optName != "maxeval")
             {
-                abnormal = 9;
+                abnormal = "maxeval";
                 break;
             }
             in_file >> maxeval;
@@ -236,7 +178,7 @@ public:
             in_file >> optName;
             if (optName != "stopCode")
             {
-                abnormal = 10;
+                abnormal = "stopCode";
                 break;
             }
             in_file >> stopCode;
@@ -245,13 +187,13 @@ public:
             in_file >> optName;
             if (optName != "record")
             {
-                abnormal = 11;
+                abnormal = "record";
                 break;
             }
 
             in_file >> optName;
             if (optName != "vert") {
-                abnormal = 12;
+                abnormal = "vert";
                 break;
             }
             int selected = 0;
@@ -262,7 +204,7 @@ public:
 
             in_file >> optName;
             if (optName != "energy") {
-                abnormal = 13;
+                abnormal = "energy";
                 break;
             }
             selected = 0;
@@ -273,7 +215,7 @@ public:
 
             in_file >> optName;
             if (optName != "minArea") {
-                abnormal = 14;
+                abnormal = "minArea";
                 break;
             }
             selected = 0;
@@ -282,12 +224,23 @@ public:
                 record.emplace_back("minArea");
             }
 
+            in_file >> optName;
+            if (optName != "nbWindVert") {
+                abnormal = "nbWindVert";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("nbWindVert");
+            }
+
             break;
         }
 
         in_file.close();
 
-        if (abnormal!=0)
+        if (abnormal!="normal")
         {
             std::cout << "Err:(" << abnormal << ") fail to import options from file. Check file format." << std::endl;
             return false;
@@ -318,6 +271,7 @@ public:
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
             record_vert(false), record_energy(false), record_minArea(false),
+            record_nb_winded_interior_vertices(false),
             vertRecord(0),energyRecord(0), minAreaRecord(0),
             formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
             is_boundary_vertex(initV.cols(), false)
@@ -365,7 +319,7 @@ public:
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
-    std::vector<int> nb_winded_interior_vertices;
+    std::vector<int> nb_winded_interior_vertices_Record;
 
 
     // record information we cared about
@@ -393,7 +347,7 @@ public:
         if (record_nb_winded_interior_vertices) {
             std::vector<size_t> winded_vertices;
             compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
-            nb_winded_interior_vertices.push_back(winded_vertices.size());
+            nb_winded_interior_vertices_Record.push_back(winded_vertices.size());
         }
     }
 
@@ -432,8 +386,8 @@ public:
             return false;
         } else {
             // check if there is any over-winding interior vertices
-            if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices.empty()) {
-                if (nb_winded_interior_vertices.back() == 0) {
+            if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices_Record.empty()) {
+                if (nb_winded_interior_vertices_Record.back() == 0) {
                     if (!locally_injective_Found) {
                         locally_injective_Found = true;
                         first_locally_injective_iteration = iteration_count;
@@ -563,11 +517,11 @@ public:
 
         if (record_nb_winded_interior_vertices)
         {
-            auto n_record = nb_winded_interior_vertices.size();
+            auto n_record = nb_winded_interior_vertices_Record.size();
             out_file << "nbWindVert " << n_record << std::endl;
             for (int i = 0; i < n_record; ++i)
             {
-                out_file << nb_winded_interior_vertices[i] << " ";
+                out_file << nb_winded_interior_vertices_Record[i] << " ";
             }
             out_file << std::endl;
         }
