@@ -139,14 +139,142 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd &x, 
                                                                             arc_occupancy_grad);
     has_found_intersection = arcOccupancy.has_found_intersection;
 
-    // gradient
+    // full gradient
     Matrix2Xd m_grad = tlc_grad + arc_seg_grad - arc_occupancy_grad;
 
+    // gradient of free vertices
     grad.resize(freeI.size() * m_grad.rows());
     for (int i = 0; i < freeI.size(); ++i) {
         grad(2*i) = m_grad(0,freeI(i));
         grad(2*i+1) = m_grad(1,freeI(i));
     }
+
+    // energy
+    return tlc_energy + arc_segment_area - arc_occupancy;
+}
+
+double Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &grad,
+                                                                                    SpMat &Hess) {
+    update_V(x);
+
+    // TLC energy, TLC full gradient,
+    // and PSD projected Hessian of (TLC - total signed area) on free vertices
+    Matrix2Xd tlc_grad;
+    double tlc_energy = tlc.compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(V, freeI, F_free,
+                                                                                                 tlc_grad, Hess);
+
+    // arc segment area - arc occupancy
+    std::vector<Point> vertices(V.cols());
+    for (int i = 0; i < V.cols(); ++i) {
+        vertices[i] = V.col(i);
+    }
+    Matrix2Xd arc_seg_grad;
+    double arc_segment_area =arcOccupancy.compute_arc_curve_segment_area_with_gradient(vertices, boundary_edges,
+                                                                                       arc_seg_grad);
+    Matrix2Xd arc_occupancy_grad;
+    double arc_occupancy = arcOccupancy.compute_arc_occupancy_with_gradient(vertices, boundary_edges,
+                                                                            arc_occupancy_grad);
+    has_found_intersection = arcOccupancy.has_found_intersection;
+
+    // full gradient
+    Matrix2Xd m_grad = tlc_grad + arc_seg_grad - arc_occupancy_grad;
+
+    // gradient of free vertices
+    grad.resize(freeI.size() * m_grad.rows());
+    for (int i = 0; i < freeI.size(); ++i) {
+        grad(2*i) = m_grad(0,freeI(i));
+        grad(2*i+1) = m_grad(1,freeI(i));
+    }
+
+    // energy
+    return tlc_energy + arc_segment_area - arc_occupancy;
+}
+
+double Arc_Overlap_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+    update_V(x);
+
+    // TLC
+    VectorXd lifted_content_list;
+    double tlc_energy = tlc.compute_total_lifted_content(V,lifted_content_list);
+
+    //
+    std::vector<Point> vertices(V.cols());
+    for (int i = 0; i < V.cols(); ++i) {
+        vertices[i] = V.col(i);
+    }
+    VectorXd arc_curve_segment_area_list;
+    double arc_segment_area = arcOccupancy.compute_arc_curve_segment_area(vertices, boundary_edges,
+                                                                          arc_curve_segment_area_list);
+    double arc_occupancy = arcOccupancy.compute_arc_occupancy(vertices, boundary_edges);
+    has_found_intersection = arcOccupancy.has_found_intersection;
+
+    // fill the energy decomposition into energy_list
+    energy_list.resize(lifted_content_list.size()+arc_curve_segment_area_list.size()+1);
+    int ii = 0;
+    for (int i = 0; i < lifted_content_list.size(); ++i) {
+        energy_list(ii) = lifted_content_list(i);
+        ++ii;
+    }
+    for (int i = 0; i < arc_curve_segment_area_list.size(); ++i) {
+        energy_list(ii) = arc_curve_segment_area_list(i);
+        ++ii;
+    }
+    energy_list(ii) = -arc_occupancy;
+
+
+    return tlc_energy + arc_segment_area - arc_occupancy;
+}
+
+double
+Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &energy_list,
+                                                                             VectorXd &grad, SpMat &Hess) {
+    update_V(x);
+
+    // TLC energy, TLC full gradient,
+    // and PSD projected Hessian of (TLC - total signed area) on free vertices
+    VectorXd lifted_content_list;
+    Matrix2Xd tlc_grad;
+    double tlc_energy = tlc.compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(V, freeI, F_free,
+                                                                                                 lifted_content_list,
+                                                                                                 tlc_grad, Hess);
+
+    // arc segment area - arc occupancy
+    std::vector<Point> vertices(V.cols());
+    for (int i = 0; i < V.cols(); ++i) {
+        vertices[i] = V.col(i);
+    }
+    VectorXd  arc_curve_segment_area_list;
+    Matrix2Xd arc_seg_grad;
+    double arc_segment_area =arcOccupancy.compute_arc_curve_segment_area_with_gradient(vertices, boundary_edges,
+                                                                                       arc_curve_segment_area_list,
+                                                                                       arc_seg_grad);
+    Matrix2Xd arc_occupancy_grad;
+    double arc_occupancy = arcOccupancy.compute_arc_occupancy_with_gradient(vertices, boundary_edges,
+                                                                            arc_occupancy_grad);
+    has_found_intersection = arcOccupancy.has_found_intersection;
+
+    // full gradient
+    Matrix2Xd m_grad = tlc_grad + arc_seg_grad - arc_occupancy_grad;
+
+    // gradient of free vertices
+    grad.resize(freeI.size() * m_grad.rows());
+    for (int i = 0; i < freeI.size(); ++i) {
+        grad(2*i) = m_grad(0,freeI(i));
+        grad(2*i+1) = m_grad(1,freeI(i));
+    }
+
+    // fill the energy decomposition into energy_list
+    energy_list.resize(lifted_content_list.size()+arc_curve_segment_area_list.size()+1);
+    int ii = 0;
+    for (int i = 0; i < lifted_content_list.size(); ++i) {
+        energy_list(ii) = lifted_content_list(i);
+        ++ii;
+    }
+    for (int i = 0; i < arc_curve_segment_area_list.size(); ++i) {
+        energy_list(ii) = arc_curve_segment_area_list(i);
+        ++ii;
+    }
+    energy_list(ii) = -arc_occupancy;
 
     // energy
     return tlc_energy + arc_segment_area - arc_occupancy;

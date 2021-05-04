@@ -8,6 +8,8 @@
 #include "Total_Lifted_Content.h"
 #include "Arc_Occupancy.h"
 
+
+
 using namespace Eigen;
 
 class Arc_Overlap_Formulation {
@@ -22,8 +24,23 @@ public:
 
     double compute_energy(const Eigen::VectorXd &x);
 
+    // compute arc overlap energy,
+    // record the decomposition of the energy in energy_list
+    // decomposition: lifted content per triangle, arc segment area per edge, arc occupancy area
+    double compute_energy(const Eigen::VectorXd &x, Eigen::VectorXd &energy_list);
+
     double compute_energy_with_gradient(const Eigen::VectorXd &x,
                                         Eigen::VectorXd &grad);
+
+    // approximate Hessian using the Hessian of (TLC - total signed area)
+    double compute_energy_with_gradient_approxProjectedHessian(const Eigen::VectorXd &x,
+                                                               Eigen::VectorXd &grad, SpMat &Hess);
+
+    // approximate Hessian using the Hessian of (TLC - total signed area)
+    double compute_energy_with_gradient_approxProjectedHessian(const Eigen::VectorXd &x,
+                                                               Eigen::VectorXd &energy_list,
+                                                               Eigen::VectorXd &grad, SpMat &Hess);
+
 
     static double computeAlpha(const MatrixXd &restV,
                                const Matrix2Xd &initV,
