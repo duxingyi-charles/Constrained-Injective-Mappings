@@ -10,6 +10,10 @@
 
 using namespace Eigen;
 
+//#include <Eigen/CholmodSupport>
+#include <Eigen/Sparse>
+typedef SparseMatrix<double> SpMat;
+
 class Total_Lifted_Content {
 public:
 
@@ -24,10 +28,32 @@ public:
     // compute total lifted content
     double compute_total_lifted_content(const Matrix2Xd &vertices) const;
 
+    // compute total lifted content, record lifted content of each triangle
+    double compute_total_lifted_content(const Matrix2Xd &vertices, VectorXd &lifted_content_list) const;
+
     // compute total lifted content and its gradient
     double compute_total_lifted_content_with_gradient(const Matrix2Xd &vertices,
                                         // output
                                         Eigen::Matrix2Xd &grad) const;
+
+    // compute total lifted content and its gradient,
+    // and PSD projected Hessian of (TLC - total signed area) on free vertices
+    double compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
+                                                                                const VectorXi &freeI,
+                                                                                const Matrix3Xi  &F_free,
+                                                                                // output
+                                                                                Matrix2Xd &grad,
+                                                                                SpMat &Hess) const;
+
+    // compute total lifted content and its gradient,
+    // and PSD projected Hessian of (TLC - total signed area) on free vertices
+    double compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
+                                                                                const VectorXi &freeI,
+                                                                                const Matrix3Xi  &F_free,
+                                                                                // output
+                                                                                VectorXd &lifted_content_list,
+                                                                                Matrix2Xd &grad,
+                                                                                SpMat &Hess) const;
 
 
 private:
@@ -44,6 +70,13 @@ private:
     //  - r: squared edge lengths of aux triangle
     static double compute_lifted_TriArea_with_gradient(const Matrix2Xd &vert, const Vector3d &r,
                                                        Matrix2Xd &grad);
+
+    // compute lifted triangle area with gradient and Hessian wrt. vert
+    // input:
+    //  - vert: three vertices
+    //  - r: squared edge lengths of aux triangle
+    static double compute_lifted_TriArea_with_gradient_Hessian(const Matrix2Xd &vert, const Vector3d &r,
+                                                       Matrix2Xd &grad, MatrixXd &Hess);
 
 private:
     // alpha parameter
