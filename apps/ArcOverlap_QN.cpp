@@ -413,19 +413,27 @@ public:
     }
 
     bool stopQ_globally_injective() {
-        if (!stopQ_locally_injective()) {
-            return false;
+        if (locally_injective_Found) {
+            // locally injective mesh is already found
+            if (!stopQ_no_flip_degenerate()) {
+                return false;
+            } else {
+                return !(formulation.has_found_intersection);
+            }
         } else {
-            // record the first locally injective iteration
-            if (!locally_injective_Found) {
+            if (!stopQ_locally_injective()) {
+                return false;
+            } else {
+                // record the first locally injective iteration
                 locally_injective_Found = true;
                 first_locally_injective_iteration = iteration_count;
                 first_locally_injective_V = formulation.get_V();
+
+                // check global injectivity:
+                // if no arc-arc intersection is found in the last energy/gradient evaluation,
+                // then global injectivity is surely achieved
+                return !(formulation.has_found_intersection);
             }
-            // check global injectivity:
-            // if no arc-arc intersection is found in the last energy/gradient evaluation,
-            // then global injectivity is surely achieved
-            return !(formulation.has_found_intersection);
         }
     }
 
