@@ -269,7 +269,9 @@ Circular_Arc::compute_intersection_gradient(const Point &p, const Point &O1, con
     auto o2x = O2.x(), o2y = O2.y();
 
     // dp/dO1
-    auto d = -(o2y*px) + o1y*(-o2x + px) + o1x*(o2y - py) + o2x*py;
+    //auto d = -(o2y*px) + o1y*(-o2x + px) + o1x*(o2y - py) + o2x*py;
+    // this is more numerically robust
+    auto d = (px - o1x) * (py - o2y) - (py - o1y) * (px - o2x);
     dp_dO1(0,0) = (o1x - px) * (o2y - py);
     dp_dO1(0,1) = (o1y - py) * (o2y - py);
     dp_dO1(1,0) = (o1x - px) * (px - o2x);
