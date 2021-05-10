@@ -539,6 +539,14 @@ public:
     }
 };
 
+// nan gradient exception
+class null_Grad_Exception : public std::exception
+{
+    virtual const char* what() const throw()
+    {
+        return "nan gradient entry exception.";
+    }
+} null_grad_exception;
 
 //
 double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
@@ -570,6 +578,10 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
     } else { // gradient is required
         energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
         for (int i = 0; i < g_vec.size(); ++i) {
+            if (isnan(g_vec(i))) {
+                std::cout << "g_vec(" << i << ") is nan." << std::endl;
+                throw null_grad_exception;
+            }
             grad[i] = g_vec(i);
         }
         //test
