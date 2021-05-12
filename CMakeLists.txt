@@ -19,6 +19,12 @@ add_library(arcOverlap STATIC ${SRC_LIST})
 target_include_directories(arcOverlap PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(arcOverlap PUBLIC Eigen3::Eigen)
 
+# OpenMP
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(arcOverlap PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 add_executable(findInjective apps/TLC.cpp)
 target_link_libraries(findInjective PUBLIC arcOverlap nlopt::nlopt)
 set_target_properties(findInjective PROPERTIES LINKER_LANGUAGE CXX)
@@ -70,11 +76,6 @@ else()
     target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
 endif()
 
-# OpenMP
-#find_package(OpenMP)
-#if(OpenMP_CXX_FOUND)
-#    target_link_libraries(arcOverlap_PN PUBLIC OpenMP::OpenMP_CXX)
-#endif()
 
 # Math library
 find_library(MATH_LIBRARY m)

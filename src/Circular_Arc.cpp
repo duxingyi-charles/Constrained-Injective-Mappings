@@ -85,7 +85,7 @@ Circular_Arc Circular_Arc::reverse(const Circular_Arc &c) {
 void Circular_Arc::compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
                           std::vector<Intersection_Point>& result)
 {
-    result.clear();
+    //result.clear();
     const Point &p1 = arc1.start_point;
     const Point &p2 = arc1.end_point;
     const Point &q1 = arc2.start_point;

@@ -102,23 +102,56 @@ void Arrangement::subdivide_polyArc_by_intersection(
     }
 
     // compute intersections
-    for (const auto & pair : potential_pair_list) {
+    std::vector<std::vector<Intersection_Point>> intersection_results(potential_pair_list.size());
+#pragma omp parallel
+    {
+#pragma omp for nowait
+        for (size_t pi = 0; pi < potential_pair_list.size(); pi++)
+        {
+            const auto& pair = potential_pair_list[pi];
+            int i = pair.first;
+            int j = pair.second;
+            Circular_Arc::compute_intersection(edges[i].arc, edges[j].arc, intersection_results[pi]);
+        }
+    }
+    
+
+    for (size_t pi = 0; pi < potential_pair_list.size(); pi++)
+    {
+        const auto& pair = potential_pair_list[pi];
         int i = pair.first;
         int j = pair.second;
-        std::vector<Intersection_Point> result;
-        Circular_Arc::compute_intersection(edges[i].arc, edges[j].arc, result);
+        const auto& result = intersection_results[pi];
         if (!result.empty()) {
-            for (const auto & intersection : result) {
+            for (const auto& intersection : result) {
                 pts.emplace_back(intersection.location);
                 is_intersection_point.push_back(true);
-                edge_intersection_list[i].emplace_back(pts.size()-1, intersection.angle1);
-                edge_intersection_list[j].emplace_back(pts.size()-1, intersection.angle2);
+                edge_intersection_list[i].emplace_back(pts.size() - 1, intersection.angle1);
+                edge_intersection_list[j].emplace_back(pts.size() - 1, intersection.angle2);
                 // intersectInfo
                 arc1_of_intersection.push_back(i);
                 arc2_of_intersection.push_back(j);
             }
         }
     }
+
+    //for (const auto & pair : potential_pair_list) {
+    //    int i = pair.first;
+    //    int j = pair.second;
+    //    std::vector<Intersection_Point> result;
+    //    Circular_Arc::compute_intersection(edges[i].arc, edges[j].arc, result);
+    //    if (!result.empty()) {
+    //        for (const auto & intersection : result) {
+    //            pts.emplace_back(intersection.location);
+    //            is_intersection_point.push_back(true);
+    //            edge_intersection_list[i].emplace_back(pts.size()-1, intersection.angle1);
+    //            edge_intersection_list[j].emplace_back(pts.size()-1, intersection.angle2);
+    //            // intersectInfo
+    //            arc1_of_intersection.push_back(i);
+    //            arc2_of_intersection.push_back(j);
+    //        }
+    //    }
+    //}
 
     // subdivide input arcs
     auto PID_angle_less_than = [](const PID_Angle_Pair &left, const PID_Angle_Pair &right)
