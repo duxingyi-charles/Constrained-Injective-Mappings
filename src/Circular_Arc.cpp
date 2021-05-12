@@ -121,7 +121,8 @@ void Circular_Arc::find_all_intersections(const Circular_Arc &arc1, const Circul
     double r2 = arc2.radius;
 
     double dist_o1o2 = (o1-o2).norm();
-    if (dist_o1o2 > r1 + r2 || dist_o1o2 < fabs(r1-r2) || dist_o1o2 == 0) {
+    if (dist_o1o2 >= r1 + r2 || dist_o1o2 <= fabs(r1-r2) || dist_o1o2 == 0) {
+        // when (dist_o1o2 == r1 + r2) or (dist_o1o2 == fabs(r1-r2)), two circles become tangent, but we don't treat it as intersection
         // when dist_o1o2==0, the two arcs could have some overlap, but we don't treat that as intersection
         return;
     }
