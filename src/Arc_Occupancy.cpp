@@ -197,14 +197,15 @@ Arc_Occupancy::compute_arc_loop_area_with_gradient(const std::vector<Point> &pts
         auto i = e.id1;
         auto j = e.id2;
         auto e_vec = pts[i] - pts[j];
-        auto e_len_squared = e_vec.squaredNorm();
+        //auto e_len_squared = e_vec.squaredNorm();
         auto theta = e.arc.get_arc_angle();
         auto radius = e.arc.get_radius();
         Eigen::Vector2d da_dp = (tan(theta/2)/2) * e_vec;
         //
         dArea_dp.col(i) += da_dp;
         dArea_dp.col(j) -= da_dp;
-        dArea_dr2(e.parent_id) += (theta-sin(theta))/2 - tan(theta/2) * e_len_squared / (radius*radius*4);
+        //dArea_dr2(e.parent_id) += (theta-sin(theta))/2 - tan(theta/2) * e_len_squared / (radius*radius*4);
+        dArea_dr2(e.parent_id) += (theta - sin(theta)) / 2 - tan(theta / 2) * sin(theta/2) * sin(theta/2);
     }
 
     //
