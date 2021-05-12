@@ -83,6 +83,10 @@ void Arrangement::subdivide_polyArc_by_intersection(
 
     std::vector<std::pair<int,int>> potential_pair_list;
     for (int i = 0; i < edges.size(); ++i) {
+        if (edges[i].arc.get_start_point() == edges[i].arc.get_end_point()) {
+            // skip degenerate arcs
+            continue;
+        }
         for (int j = i+1; j < edges.size(); ++j) {
             if (Rectangle::is_intersect(bbox_list[i], bbox_list[j])) {
                 potential_pair_list.emplace_back(i, j);
