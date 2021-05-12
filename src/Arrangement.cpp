@@ -81,14 +81,21 @@ void Arrangement::subdivide_polyArc_by_intersection(
         bbox_list.emplace_back(e.arc.get_bounding_box());
     }
 
+    std::vector<bool> is_degenerate_edge(false, edges.size());
+    for (size_t i = 0; i < edges.size(); i++)
+    {
+        if (edges[i].arc.get_start_point() == edges[i].arc.get_end_point()) {
+            is_degenerate_edge[i] = true;
+        }
+    }
     std::vector<std::pair<int,int>> potential_pair_list;
     for (int i = 0; i < edges.size(); ++i) {
-        if (edges[i].arc.get_start_point() == edges[i].arc.get_end_point()) {
+        if (is_degenerate_edge[i]) {
             // skip degenerate arcs
             continue;
         }
         for (int j = i+1; j < edges.size(); ++j) {
-            if (Rectangle::is_intersect(bbox_list[i], bbox_list[j])) {
+            if (!is_degenerate_edge[j] && Rectangle::is_intersect(bbox_list[i], bbox_list[j])) {
                 potential_pair_list.emplace_back(i, j);
             }
         }
