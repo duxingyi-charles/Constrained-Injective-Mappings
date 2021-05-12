@@ -81,7 +81,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
         bbox_list.emplace_back(e.arc.get_bounding_box());
     }
 
-    std::vector<bool> is_degenerate_edge(false, edges.size());
+    std::vector<bool> is_degenerate_edge(edges.size(),false);
     for (size_t i = 0; i < edges.size(); i++)
     {
         if (edges[i].arc.get_start_point() == edges[i].arc.get_end_point()) {
