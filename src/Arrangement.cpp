@@ -106,7 +106,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
 #pragma omp parallel
     {
 #pragma omp for nowait
-        for (size_t pi = 0; pi < potential_pair_list.size(); pi++)
+        for (int pi = 0; pi < potential_pair_list.size(); pi++)
         {
             const auto& pair = potential_pair_list[pi];
             int i = pair.first;
