@@ -102,6 +102,8 @@ void Arrangement::subdivide_polyArc_by_intersection(
     }
 
     // compute intersections
+
+    // parallel version 1: separate parallel part from non-parallel part.
     std::vector<std::vector<Intersection_Point>> intersection_results(potential_pair_list.size());
 #pragma omp parallel
     {
@@ -135,6 +137,38 @@ void Arrangement::subdivide_polyArc_by_intersection(
         }
     }
 
+    // parallel version 2: using omp critical
+    // note: in this version, the order of points in pts is determined only at run-time. 
+    //       In consequence, the result may differ from time to time.
+//#pragma omp parallel
+//    {
+//#pragma omp for
+//        for (int pi = 0; pi < potential_pair_list.size(); ++pi)
+//        {
+//            const auto& pair = potential_pair_list[pi];
+//            int i = pair.first;
+//            int j = pair.second;
+//            std::vector<Intersection_Point> result;
+//            Circular_Arc::compute_intersection(edges[i].arc, edges[j].arc, result);
+//            if (!result.empty()) {
+//#pragma omp critical
+//                {
+//                    for (const auto& intersection : result) {
+//                        pts.emplace_back(intersection.location);
+//                        is_intersection_point.push_back(true);
+//                        edge_intersection_list[i].emplace_back(pts.size() - 1, intersection.angle1);
+//                        edge_intersection_list[j].emplace_back(pts.size() - 1, intersection.angle2);
+//                        // intersectInfo
+//                        arc1_of_intersection.push_back(i);
+//                        arc2_of_intersection.push_back(j);
+//                    }
+//                }
+//            }
+//            
+//        }
+//    }
+
+    // non-parallel version:
     //for (const auto & pair : potential_pair_list) {
     //    int i = pair.first;
     //    int j = pair.second;
