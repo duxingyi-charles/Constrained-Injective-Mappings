@@ -330,7 +330,7 @@ size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdg
                                             const std::vector<std::vector<size_t>> &eOut,
                                             const std::vector<std::vector<size_t>> &cells,
                                             const std::vector<size_t> &cell_of_hE)
-{
+{  //todo: implement using the other find_the_unbounded_cell function
     // find the arc farthest to the left
     Point most_left_point(std::numeric_limits<double>::infinity(), 0);
     size_t most_left_edge_id;
@@ -387,4 +387,309 @@ size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdg
     }
 
     return unbounded_cell_id;
+}
+
+size_t Arrangement::find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdges,
+                                            const std::vector<std::vector<size_t>> &eIn,
+                                            const std::vector<std::vector<size_t>> &eOut,
+                                            const std::vector<std::vector<size_t>> &cells,
+                                            const std::vector<size_t> &cell_of_hE,
+                                            Point_Arc_Location most_left_location,
+                                            size_t most_left_edge_id)
+{
+    // pick out the unbounded cell
+    size_t unbounded_cell_id;
+    double theta1 = pEdges[most_left_edge_id].arc.get_start_angle();
+    double theta2 = pEdges[most_left_edge_id].arc.get_end_angle();
+
+    if (most_left_location == Middle) {
+        if (theta1 < theta2) {
+            // counter clockwise arc
+            unbounded_cell_id = cell_of_hE[2*most_left_edge_id];
+        } else {
+            unbounded_cell_id = cell_of_hE[2*most_left_edge_id+1];
+        }
+    } else {
+        size_t most_left_vert_id = (most_left_location == Start) ?
+                                   pEdges[most_left_edge_id].id1 :
+                                   pEdges[most_left_edge_id].id2;
+        assert(eIn[most_left_vert_id].size() == 1);
+
+        auto in_edge_id = eIn[most_left_vert_id][0];
+        auto out_edge_id = eOut[most_left_vert_id][0];
+
+        auto in_vec = pEdges[in_edge_id].arc.get_out_tangent_vector();
+        auto out_vec = pEdges[out_edge_id].arc.get_in_tangent_vector();
+
+        double cross_product = in_vec.x()*out_vec.y() - in_vec.y()*out_vec.x();
+        if (cross_product > 0) {
+            // left turn
+            unbounded_cell_id = cell_of_hE[2*in_edge_id];
+        } else if (cross_product < 0) {
+            // right turn
+            unbounded_cell_id = cell_of_hE[2*in_edge_id+1];
+        } else {
+            // co-linear
+            if ((theta2-theta1)*(in_vec.dot(out_vec)) > 0) {
+                unbounded_cell_id = cell_of_hE[2*in_edge_id];
+            } else {
+                unbounded_cell_id = cell_of_hE[2*in_edge_id+1];
+            }
+        }
+    }
+
+    return unbounded_cell_id;
+}
+
+void Arrangement::compute_multi_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+                                            std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
+                                            std::vector<bool> &is_intersection_point,
+                                            std::vector<int> &arc1_of_intersection,
+                                            std::vector<int> &arc2_of_intersection,
+                                            std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
+                                            std::vector<int> &windings) {
+    // step 1: subdivide input arcs by their intersections
+    subdivide_polyArc_by_intersection(vertices, edges,pts, pEdges,is_intersection_point,
+                                      arc1_of_intersection,arc2_of_intersection);
+
+    // step 2: get all arrangement chains (a cell can have many bounding chains)
+    std::vector<std::vector<size_t>> eIn;
+    std::vector<std::vector<size_t>> eOut;
+    std::vector<std::vector<size_t>> chains;
+    decompose_into_cells(pts, pEdges, eIn, eOut, chains);
+
+
+
+    // step 3: compute arrangement cells and their winding numbers
+    std::vector<std::vector<size_t>> cells;
+    compute_cells_and_windings(pEdges,eIn,eOut,chains,cells,windings);
+//    compute_cell_windings(pEdges, eIn, eOut, cells, windings);
+
+    // convert each cell from a list of half-edge indices to a list arc edges
+    edges_of_cell.clear();
+    edges_of_cell.reserve(cells.size());
+    for (const auto & hEdges : cells) {
+        edges_of_cell.emplace_back();
+        auto &es = edges_of_cell.back();
+        for (auto hE : hEdges) {
+            // create SubArc_Edge for half-edge
+            // here, SubArc_Edge.parent_id record the index of the input edge in [std::vector<Arc_Edge> edges]
+            if (hE%2 == 0) {
+                const auto &pEdge = pEdges[hE/2];
+                es.emplace_back(SubArc_Edge{pEdge.id2, pEdge.id1, pEdge.parent_id,
+                                            Circular_Arc::reverse(pEdge.arc)});
+            } else {
+                es.emplace_back(pEdges[(hE-1)/2]);
+            }
+        }
+    }
+
+}
+
+void Arrangement::compute_cells_and_windings(const std::vector<SubArc_Edge> &pEdges,
+                                             const std::vector<std::vector<size_t>> &eIn,
+                                             const std::vector<std::vector<size_t>> &eOut,
+                                             const std::vector<std::vector<size_t>> &chains,
+                                             std::vector<std::vector<size_t>> &cells, std::vector<int> &windings) {
+    // map: half-edge index -> chain index
+    std::vector<size_t> chain_of_hE(2*pEdges.size(),0);
+    for (int i = 0; i < chains.size(); ++i) {
+        for (const auto h : chains[i]) {
+            chain_of_hE[h] = i;
+        }
+    }
+
+    // step 1: build chain adjacency list
+    // adjacent_chains[i][j] is the half-edge between chain i and chain j
+    std::vector<std::map<size_t,size_t>> adjacent_chains(chains.size());
+    for (int i = 0; i < pEdges.size(); ++i) {
+        adjacent_chains[chain_of_hE[2*i+1]][chain_of_hE[2*i]] = 2*i + 1;
+        adjacent_chains[chain_of_hE[2*i]][chain_of_hE[2*i+1]] = 2*i;
+    }
+
+    // step 2: identify connected components of chain adjacency graph
+    std::vector<int> component_of_chain(chains.size(),-1);  // -1 for unknown
+    int cur_component = -1;
+    for (size_t i = 0; i < chains.size(); ++i) {
+        if (component_of_chain[i] == -1) { // find new component
+            ++cur_component;
+            std::queue<size_t> Q;
+            Q.push(i);
+            component_of_chain[i] = cur_component;
+            while (!Q.empty()) {
+                auto chain_id = Q.front();
+                Q.pop();
+                for (const auto &c : adjacent_chains[chain_id]) {
+                    auto c_id = c.first;
+                    if (component_of_chain[c_id] == -1) {
+                        component_of_chain[c_id] = cur_component;
+                        Q.push(c_id);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<std::vector<size_t>> components(cur_component+1);
+    for (int i = 0; i < chains.size(); ++i) {
+        components[component_of_chain[i]].push_back(i);
+    }
+
+
+    // step 3: find the left-most edge of each component
+
+    std::vector<std::pair<Point, Point_Arc_Location>> left_point_info_list;
+    left_point_info_list.reserve(pEdges.size());
+    for (const auto &pE: pEdges) {
+        left_point_info_list.emplace_back(pE.arc.get_most_left_point());
+    }
+
+    std::vector<size_t> left_most_edge_of_component(components.size());
+
+    typedef std::pair<size_t ,double> ID_xMin;
+    std::vector<ID_xMin> component_id_xmin_list;
+    component_id_xmin_list.reserve(components.size());
+
+    for (size_t i = 0; i < components.size(); ++i) {
+        // find the arc farthest to the left
+        double x_min = std::numeric_limits<double>::infinity();
+        size_t most_left_edge_id;
+        //
+        for (auto ci : components[i]) {
+            for (auto he : chains[ci]) {
+                size_t e_id = he/2;
+                if (left_point_info_list[e_id].first.x() < x_min) {
+                    x_min = left_point_info_list[e_id].first.x();
+                    most_left_edge_id = e_id;
+                }
+            }
+        }
+        left_most_edge_of_component[i] = most_left_edge_id;
+        component_id_xmin_list.emplace_back(i,x_min);
+    }
+
+    // step 4: sort components in left to right order
+    auto ID_xMin_less_than = [](const ID_xMin &left, const ID_xMin &right)
+    { return left.second < right.second; };
+    std::sort(component_id_xmin_list.begin(), component_id_xmin_list.end(), ID_xMin_less_than);
+
+    std::vector<std::vector<size_t>> sorted_components;
+    sorted_components.reserve(components.size());
+    std::vector<size_t> left_most_edge_of_sorted_component;
+    for (const auto &id_xmin : component_id_xmin_list) {
+        sorted_components.emplace_back(components[id_xmin.first]);
+        left_most_edge_of_sorted_component.push_back(left_most_edge_of_component[id_xmin.first]);
+    }
+
+    // step 5: find unbounded chain of each component
+    std::vector<size_t> unbounded_chain_of_sorted_component(sorted_components.size());
+    for (int i = 0; i < sorted_components.size(); ++i) {
+        unbounded_chain_of_sorted_component[i] =
+                find_the_unbounded_cell(pEdges,eIn,eOut,chains,chain_of_hE,
+                                        left_point_info_list[left_most_edge_of_sorted_component[i]].second,
+                                        left_most_edge_of_sorted_component[i]);
+    }
+
+    // step 6: compute arrangement cells and their adjacency
+
+    std::vector<std::vector<size_t>> new_chains = chains;
+
+    std::vector<size_t> final_component = sorted_components[0];
+    size_t unbounded_chain_id = unbounded_chain_of_sorted_component[0];
+
+    for (int i = 1; i < sorted_components.size(); ++i) {
+        const auto &component = sorted_components[i];
+
+        // pick a point on the current component
+        auto he = chains[component[0]][0];
+        size_t e_id = he/2;
+        Point p = pEdges[e_id].arc.get_start_point();
+
+        // find the chain that encloses the current component
+        bool enclosing_chain_found = false;
+        size_t enclosing_chain_id;
+        for (auto ci : final_component) {
+            double total_signed_angle = 0;
+            for (auto half_edge : new_chains[ci]) {
+                size_t edge_id = half_edge / 2;
+                double angle = pEdges[edge_id].arc.get_view_angle(p);
+                if (half_edge%2 == 0) { // opposite direction half-edge
+                    angle *= -1;
+                }
+                total_signed_angle += angle;
+            }
+            if (round(0.5*total_signed_angle/M_PI) == 1) {
+                enclosing_chain_id = ci;
+                enclosing_chain_found = true;
+                break;
+            }
+        }
+        if (!enclosing_chain_found) {
+            enclosing_chain_id = unbounded_chain_id;
+        }
+
+        // merge the current component into the final component
+        auto cur_unbounded_chain_id = unbounded_chain_of_sorted_component[i];
+        new_chains[enclosing_chain_id].insert(new_chains[enclosing_chain_id].end(),
+                                              chains[cur_unbounded_chain_id].begin(),
+                                              chains[cur_unbounded_chain_id].end());
+
+        for (const auto &ci : component) {
+            if (ci != cur_unbounded_chain_id) {
+                final_component.push_back(ci);
+            }
+        }
+
+        for (const auto &cId_he :adjacent_chains[cur_unbounded_chain_id]) {
+            size_t c_id = cId_he.first;
+            size_t half_edge1 = cId_he.second;
+            size_t half_edge2 = adjacent_chains[c_id][cur_unbounded_chain_id];
+            // new edges from the enclosing chain
+            adjacent_chains[enclosing_chain_id][c_id] = half_edge1;
+            // new edges to the enclosing chain
+            adjacent_chains[c_id].erase(cur_unbounded_chain_id);
+            adjacent_chains[c_id][enclosing_chain_id] = half_edge2;
+        }
+
+    }
+
+    // step 7: compute cells and their winding numbers
+
+    std::vector<int> chain_windings(new_chains.size(), 0);
+    chain_windings[unbounded_chain_id] = 0;
+
+    // propagate winding numbers on the cell adjacency graph
+    std::queue<size_t> Q;
+    std::vector<bool> is_visited(new_chains.size(), false);
+
+    Q.push(unbounded_chain_id);
+    is_visited[unbounded_chain_id] = true;
+    while (!Q.empty()) {
+        auto chain_id = Q.front();
+        Q.pop();
+        for (const auto &c : adjacent_chains[chain_id]) {
+            auto c_id = c.first;
+            auto hEdge_id = c.second;
+            if (!is_visited[c_id]) {
+                is_visited[c_id] = true;
+                if (hEdge_id%2 == 0) {
+                    chain_windings[c_id] = chain_windings[chain_id] + 1;
+                } else {
+                    chain_windings[c_id] = chain_windings[chain_id] - 1;
+                }
+                Q.push(c_id);
+            }
+        }
+    }
+
+    cells.clear();
+    for (const auto & chain_id: final_component) {
+        cells.emplace_back(new_chains[chain_id]);
+    }
+
+    windings.clear();
+    for (const auto & chain_id: final_component) {
+        windings.push_back(chain_windings[chain_id]);
+    }
+
 }
