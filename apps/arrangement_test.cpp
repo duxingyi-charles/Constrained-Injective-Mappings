@@ -133,9 +133,13 @@ int main(int argc, char **argv)
     std::vector<std::vector<SubArc_Edge>> edges_of_cell;
     std::vector<int> windings;
 
-    Arrangement::compute_arrangement(verts, edges, pts, pEdges, is_intersection_point,
+//    Arrangement::compute_arrangement(verts, edges, pts, pEdges, is_intersection_point,
+//                                     arc1_of_intersection, arc2_of_intersection,
+//                                     edges_of_cell, windings);
+    Arrangement::compute_multi_arrangement(verts, edges, pts, pEdges, is_intersection_point,
                                      arc1_of_intersection, arc2_of_intersection,
                                      edges_of_cell, windings);
+
 
 
     // debug: check output
