@@ -54,6 +54,9 @@ public:
     // compute the signed area of arc segment
     double get_segment_area() const;
 
+    // compute the signed view angle of the arc from point p
+    double get_view_angle(const Point& p) const;
+
     // compute intersections between arc1 and arc2, save intersection points to result
     static void compute_intersection(const Circular_Arc &arc1, const Circular_Arc &arc2,
                                      std::vector<Intersection_Point>& result);

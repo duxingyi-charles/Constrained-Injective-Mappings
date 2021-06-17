@@ -296,4 +296,20 @@ Circular_Arc::compute_intersection_gradient(const Point &p, const Point &O1, con
 
 }
 
+double Circular_Arc::get_view_angle(const Point &p) const {
+    double angle = compute_vec_vec_angle(start_point-p, end_point-p);
+    double dist2 = (p - center).squaredNorm();
+
+    if (dist2 < radius*radius) {
+        double signed_area = compute_tri_signed_area(start_point,end_point,p);
+        if (start_angle < end_angle && signed_area < 0) {
+            angle = 2*M_PI + angle;
+        } else if (start_angle > end_angle && signed_area > 0) {
+            angle = 2*M_PI - angle;
+        }
+    }
+
+    return angle;
+}
+
 
