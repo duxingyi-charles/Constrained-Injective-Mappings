@@ -52,11 +52,17 @@ target_link_libraries(arc_occupancy_gradient_test PUBLIC arcOverlap CLI11::CLI11
 add_executable(arcOverlap_test apps/arcOverlap_test.cpp)
 target_link_libraries(arcOverlap_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
+add_executable(arcOverlap_Iso_test apps/arcOverlap_Iso_test.cpp)
+target_link_libraries(arcOverlap_Iso_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
 add_executable(arcOverlap_QN apps/ArcOverlap_QN.cpp)
 target_link_libraries(arcOverlap_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
 add_executable(arcOverlap_PN apps/ArcOverlap_PN.cpp)
 target_link_libraries(arcOverlap_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
+add_executable(arcOverlap_Iso_QN apps/ArcOverlap_Iso_QN.cpp)
+target_link_libraries(arcOverlap_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
 # suitesparse
 

@@ -43,6 +43,17 @@ public:
                                     std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
                                     std::vector<int> &windings);
 
+    // compute self-arrangement of a set of arc loops
+    // return: arc edges of cell arrangements, winding number of cell arrangements
+    static void compute_multi_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
+                                    // output
+                                    std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
+                                    std::vector<bool> &is_intersection_point,
+                                    std::vector<int>  &arc1_of_intersection,
+                                    std::vector<int>  &arc2_of_intersection,
+                                    std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
+                                    std::vector<int> &windings);
+
     // subdivide input arcs by their intersections
     static void subdivide_polyArc_by_intersection(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
                                              // output
@@ -74,6 +85,15 @@ public:
                                       // output
                                       std::vector<int> &windings);
 
+    // compute arrangement cells and their winding numbers from chains
+    static void compute_cells_and_windings(const std::vector<SubArc_Edge> &pEdges,
+                                           const std::vector<std::vector<size_t>> &eIn,
+                                           const std::vector<std::vector<size_t>> &eOut,
+                                           const std::vector<std::vector<size_t>> &chains,
+                                           // output
+                                           std::vector<std::vector<size_t>> &cells,
+                                           std::vector<int> &windings);
+
 private:
     // trace half-edges into chains
     // input: next_hEdge[i] is the index of the half-edge after half-edge i.
@@ -90,6 +110,16 @@ private:
                                           const std::vector<std::vector<size_t>> &eOut,
                                           const std::vector<std::vector<size_t>> &cells,
                                           const std::vector<size_t> &cell_of_hE);
+
+    // find the unbounded cell given the left-most edge
+    // return: index of the unbounded cell
+    static size_t find_the_unbounded_cell(const std::vector<SubArc_Edge> &pEdges,
+                                                const std::vector<std::vector<size_t>> &eIn,
+                                                const std::vector<std::vector<size_t>> &eOut,
+                                                const std::vector<std::vector<size_t>> &cells,
+                                                const std::vector<size_t> &cell_of_hE,
+                                                Point_Arc_Location most_left_location,
+                                                size_t most_left_edge_id);
 };
 
 

@@ -51,7 +51,11 @@ double Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
     std::vector<int>  arc2_of_intersection;
     std::vector<std::vector<SubArc_Edge>> edges_of_cell;
     std::vector<int> windings;
-    Arrangement::compute_arrangement(vertices,arc_edges,
+//    Arrangement::compute_arrangement(vertices,arc_edges,
+//                                     pts,pEdges,is_intersection_point,
+//                                     arc1_of_intersection,arc2_of_intersection,
+//                                     edges_of_cell,windings);
+    Arrangement::compute_multi_arrangement(vertices,arc_edges,
                                      pts,pEdges,is_intersection_point,
                                      arc1_of_intersection,arc2_of_intersection,
                                      edges_of_cell,windings);
@@ -95,7 +99,11 @@ double Arc_Occupancy::compute_arc_occupancy_with_gradient(const std::vector<Poin
     std::vector<int>  arc2_of_intersection;
     std::vector<std::vector<SubArc_Edge>> edges_of_cell;
     std::vector<int> windings;
-    Arrangement::compute_arrangement(vertices,arc_edges,
+//    Arrangement::compute_arrangement(vertices,arc_edges,
+//                                     pts,pEdges,is_intersection_point,
+//                                     arc1_of_intersection, arc2_of_intersection,
+//                                     edges_of_cell,windings);
+    Arrangement::compute_multi_arrangement(vertices,arc_edges,
                                      pts,pEdges,is_intersection_point,
                                      arc1_of_intersection, arc2_of_intersection,
                                      edges_of_cell,windings);
