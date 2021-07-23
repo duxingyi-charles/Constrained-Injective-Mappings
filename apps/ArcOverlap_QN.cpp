@@ -235,6 +235,17 @@ public:
                 record.emplace_back("nbWindVert");
             }
 
+            in_file >> optName;
+            if (optName != "grad") {
+                abnormal = "grad";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("grad");
+            }
+
             break;
         }
 
@@ -271,8 +282,8 @@ public:
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
             record_vert(false), record_energy(false), record_minArea(false),
-            record_nb_winded_interior_vertices(false),
-            vertRecord(0),energyRecord(0), minAreaRecord(0),
+            record_nb_winded_interior_vertices(false), record_gradient(false),
+            vertRecord(0),energyRecord(0), minAreaRecord(0), gradRecord(0),
             formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
             is_boundary_vertex(initV.cols(), false)
     {
@@ -284,6 +295,9 @@ public:
             is_boundary_vertex[e.first] = true;
             is_boundary_vertex[e.second] = true;
         }
+
+        // init lastGradient
+        lastGradient.setZero(x0.size());
     };
 
     ~ Optimization_Data() = default;
@@ -301,6 +315,8 @@ public:
     bool solutionFound;
     double lastFunctionValue;
 
+    VectorXd lastGradient;
+
     bool locally_injective_Found;
     int  iteration_count;
     int  first_locally_injective_iteration;
@@ -314,11 +330,13 @@ public:
     //record data
     bool record_vert;
     bool record_energy;
+    bool record_gradient;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
+    std::vector<VectorXd> gradRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
 
 
@@ -331,12 +349,14 @@ public:
             if (*i == "energy")  record_energy = true;
             if (*i == "minArea") record_minArea = true;
             if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
+            if (*i == "grad")  record_gradient = true;
         }
     }
 
     void record()
     {
         if (record_vert) vertRecord.push_back(formulation.get_V());
+        if (record_gradient) gradRecord.push_back(lastGradient);
         //you need to make sure lastFunctionValue is up-to-date
         if (record_energy) energyRecord.push_back(lastFunctionValue);
         if (record_minArea)
@@ -534,6 +554,19 @@ public:
             out_file << std::endl;
         }
 
+        if (record_gradient)
+        {
+            auto n_record = gradRecord.size();
+            ndim = gradRecord[0].size();
+            out_file << "grad " << n_record << " " << " " << ndim << std::endl;
+            for (const auto & grad : gradRecord) {
+                for (int i = 0; i < ndim; ++i) {
+                    out_file << grad(i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
         out_file.close();
         return true;
     }
@@ -586,6 +619,8 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
         data->nb_geval += 1;
+        // record gradient
+        data->lastGradient = g_vec;
     }
 
     //record information
