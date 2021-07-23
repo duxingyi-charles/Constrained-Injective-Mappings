@@ -308,7 +308,7 @@ public:
             is_boundary_vertex[e.second] = true;
         }
 
-        // init lastGradient
+        // initialize lastGradient
         lastGradient.setZero(x0.size());
     };
 
