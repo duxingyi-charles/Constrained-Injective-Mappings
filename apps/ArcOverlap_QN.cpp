@@ -246,6 +246,17 @@ public:
                 record.emplace_back("grad");
             }
 
+            in_file >> optName;
+            if (optName != "gradNorm") {
+                abnormal = "gradNorm";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("gradNorm");
+            }
+
             break;
         }
 
@@ -283,6 +294,7 @@ public:
             nb_feval(0),nb_geval(0),
             record_vert(false), record_energy(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_gradient(false),
+            record_gradient_norm(false),
             vertRecord(0),energyRecord(0), minAreaRecord(0), gradRecord(0),
             formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
             is_boundary_vertex(initV.cols(), false)
@@ -331,12 +343,14 @@ public:
     bool record_vert;
     bool record_energy;
     bool record_gradient;
+    bool record_gradient_norm;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
     std::vector<VectorXd> gradRecord;
+    std::vector<double> gradNormRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
 
 
@@ -350,6 +364,7 @@ public:
             if (*i == "minArea") record_minArea = true;
             if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
             if (*i == "grad")  record_gradient = true;
+            if (*i == "gradNorm") record_gradient_norm = true;
         }
     }
 
@@ -357,6 +372,7 @@ public:
     {
         if (record_vert) vertRecord.push_back(formulation.get_V());
         if (record_gradient) gradRecord.push_back(lastGradient);
+        if (record_gradient_norm) gradNormRecord.push_back(lastGradient.norm());
         //you need to make sure lastFunctionValue is up-to-date
         if (record_energy) energyRecord.push_back(lastFunctionValue);
         if (record_minArea)
@@ -563,6 +579,17 @@ public:
                 for (int i = 0; i < ndim; ++i) {
                     out_file << grad(i) << " ";
                 }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_gradient_norm)
+        {
+            unsigned n_record = gradNormRecord.size();
+            out_file << "gradNorm " << n_record << std::endl;
+            for (int i = 0; i < n_record; ++i)
+            {
+                out_file << gradNormRecord[i] << " ";
             }
             out_file << std::endl;
         }
