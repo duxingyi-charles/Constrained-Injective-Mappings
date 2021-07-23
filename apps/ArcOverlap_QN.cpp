@@ -623,9 +623,11 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         data->lastGradient = g_vec;
     }
 
-    //record information
-    data->lastFunctionValue = energy;
-    data->record();
+    //record information (only when current energy is less than previous)
+    if (energy < data->lastFunctionValue) {
+        data->lastFunctionValue = energy;
+        data->record();
+    }
 
     // custom stop criterion
     if (data->stopQ())
