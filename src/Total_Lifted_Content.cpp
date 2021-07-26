@@ -375,7 +375,8 @@ Total_Lifted_Content::compute_total_lifted_content_with_gradient_and_sTLC_projec
             0.0, 0.5, 0.0, -0.5, 0.0, 0.0,
             -0.5, 0.0, 0.5, 0.0, 0.0, 0.0;
     //
-
+#pragma omp parallel
+#pragma omp for
     for (auto i = 0; i < F.cols(); ++i) {
         int i1, i2, i3;
         i1 = F(0, i);
@@ -393,10 +394,13 @@ Total_Lifted_Content::compute_total_lifted_content_with_gradient_and_sTLC_projec
         MatrixXd  hess;
         lifted_content_list(i) = compute_lifted_TriArea_with_gradient_Hessian(vert,r,g, hess);
 
-        grad.col(i1) += g.col(0);
-        grad.col(i2) += g.col(1);
-        grad.col(i3) += g.col(2);
-
+#pragma omp critical
+        {
+            grad.col(i1) += g.col(0);
+            grad.col(i2) += g.col(1);
+            grad.col(i3) += g.col(2);
+        }
+        
 
         // subtract Hessian of signed triangle area
         hess -= signedHess;
