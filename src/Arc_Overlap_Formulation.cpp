@@ -110,6 +110,36 @@ double Arc_Overlap_Formulation::compute_energy(const VectorXd &x) {
     return tlc_energy + arc_segment_area - arc_occupancy;
 }
 
+double Arc_Overlap_Formulation::compute_energy(const VectorXd& x, Time_duration& TLC_time, Time_duration &arc_seg_time,
+    Time_duration &arc_occupancy_time) {
+    update_V(x);
+
+    // TLC
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    double tlc_energy = tlc.compute_total_lifted_content(V);
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    TLC_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+
+    //
+    std::vector<Point> vertices(V.cols());
+    for (int i = 0; i < V.cols(); ++i) {
+        vertices[i] = V.col(i);
+    }
+    // arc segment area
+    t1 = std::chrono::steady_clock::now();
+    double arc_segment_area = arcOccupancy.compute_arc_curve_segment_area(vertices, boundary_edges);
+    t2 = std::chrono::steady_clock::now();
+    arc_seg_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    // arc occupancy
+    t1 = std::chrono::steady_clock::now();
+    double arc_occupancy = arcOccupancy.compute_arc_occupancy(vertices, boundary_edges);
+    t2 = std::chrono::steady_clock::now();
+    arc_occupancy_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    has_found_intersection = arcOccupancy.has_found_intersection;
+
+    return tlc_energy + arc_segment_area - arc_occupancy;
+}
+
 void Arc_Overlap_Formulation::update_V(const VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
@@ -152,6 +182,53 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd &x, 
     // energy
     return tlc_energy + arc_segment_area - arc_occupancy;
 }
+
+double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, VectorXd& grad,
+    Time_duration& TLC_time, Time_duration& arc_seg_time, Time_duration& arc_occupancy_time) {
+    update_V(x);
+
+    // TLC
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+    Matrix2Xd tlc_grad;
+    double tlc_energy = tlc.compute_total_lifted_content_with_gradient(V, tlc_grad);
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    TLC_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+
+    //
+    std::vector<Point> vertices(V.cols());
+    for (int i = 0; i < V.cols(); ++i) {
+        vertices[i] = V.col(i);
+    }
+    // arc segment area
+    t1 = std::chrono::steady_clock::now();
+    Matrix2Xd arc_seg_grad;
+    double arc_segment_area = arcOccupancy.compute_arc_curve_segment_area_with_gradient(vertices, boundary_edges,
+        arc_seg_grad);
+    t2 = std::chrono::steady_clock::now();
+    arc_seg_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    // arc occupancy
+    t1 = std::chrono::steady_clock::now();
+    Matrix2Xd arc_occupancy_grad;
+    double arc_occupancy = arcOccupancy.compute_arc_occupancy_with_gradient(vertices, boundary_edges,
+        arc_occupancy_grad);
+    t2 = std::chrono::steady_clock::now();
+    arc_occupancy_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    has_found_intersection = arcOccupancy.has_found_intersection;
+
+    // full gradient
+    Matrix2Xd m_grad = tlc_grad + arc_seg_grad - arc_occupancy_grad;
+
+    // gradient of free vertices
+    grad.resize(freeI.size() * m_grad.rows());
+    for (int i = 0; i < freeI.size(); ++i) {
+        grad(2 * i) = m_grad(0, freeI(i));
+        grad(2 * i + 1) = m_grad(1, freeI(i));
+    }
+
+    // energy
+    return tlc_energy + arc_segment_area - arc_occupancy;
+}
+
 
 double Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &grad,
                                                                                     SpMat &Hess) {
