@@ -292,6 +292,7 @@ public:
                       first_locally_injective_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
+            TLC_time(0), arc_seg_time(0), arc_occupancy_time(0),
             record_vert(false), record_energy(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_gradient(false),
             record_gradient_norm(false),
@@ -336,6 +337,10 @@ public:
 
     int nb_feval;
     int nb_geval;
+
+    Time_duration TLC_time;
+    Time_duration arc_seg_time;
+    Time_duration arc_occupancy_time;
 
     //from options
     std::string stopCode;
@@ -631,12 +636,17 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
     // compute energy/gradient
     double energy;
     VectorXd g_vec;
+    Time_duration TLC_time, arc_seg_time, arc_occupancy_time;
+
     if (grad.empty()) {  // only energy is required
-        energy = data->formulation.compute_energy(x_vec);
+        energy = data->formulation.compute_energy(x_vec, TLC_time, arc_seg_time, arc_occupancy_time);
         //test
         data->nb_feval += 1;
+        data->TLC_time += TLC_time;
+        data->arc_seg_time += arc_seg_time;
+        data->arc_occupancy_time += arc_occupancy_time;
     } else { // gradient is required
-        energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
+        energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec, TLC_time, arc_seg_time, arc_occupancy_time);
         for (int i = 0; i < g_vec.size(); ++i) {
             if (isnan(g_vec(i))) {
                 std::cout << "g_vec(" << i << ") is nan." << std::endl;
@@ -646,6 +656,9 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
         data->nb_geval += 1;
+        data->TLC_time += TLC_time;
+        data->arc_seg_time += arc_seg_time;
+        data->arc_occupancy_time += arc_occupancy_time;
         // record gradient
         data->lastGradient = g_vec;
     }
@@ -762,8 +775,11 @@ int main(int argc, char const *argv[])
         if (data.solutionFound) std::cout << "yes" << std::endl;
         else std::cout << "no" << std::endl;
         //
-        //std::cout << data.nb_feval << " function evalations, ";
-        //std::cout << data.nb_geval << " gradient evalations." << std::endl;
+        std::cout << data.nb_feval << " pure function evaluations, ";
+        std::cout << data.nb_geval << " function/gradient evaluations." << std::endl;
+        std::cout << "TLC time: " << data.TLC_time.count() << " seconds." << std::endl;
+        std::cout << "arc segment time: " << data.arc_seg_time.count() << " seconds." << std::endl;
+        std::cout << "arc occupancy time: " << data.arc_occupancy_time.count() << " seconds." << std::endl;
 
     }
     catch(std::exception &e) {
