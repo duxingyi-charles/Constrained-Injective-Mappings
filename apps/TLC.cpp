@@ -905,7 +905,7 @@ public:
 
 
 //
-double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
+double objective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
 {
 	Optimization_Data *data = (Optimization_Data *) my_func_data;
 
@@ -1117,7 +1117,7 @@ int main(int argc, char const *argv[])
 	data.set_record_flags(options.record);
 
 	//
-    opt.set_min_objective(ojbective_func, &data);
+    opt.set_min_objective(objective_func, &data);
 
 	std::vector<double> x = data.x0;
 	double minf;
