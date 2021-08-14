@@ -287,9 +287,11 @@ public:
                       double alphaRatio,
                       double alpha,
                       double theta) :
-                      F(restF), solutionFound(false), locally_injective_Found(false),
-                      first_locally_injective_iteration(-1), iteration_count(0),
-                      first_locally_injective_V(initV),
+                      F(restF), solutionFound(false), custom_criteria_met(false),
+                      locally_injective_Found(false),
+                      first_locally_injective_iteration(-1),first_locally_injective_V(initV),
+                      non_flip_Found(false), first_non_flip_iteration(-1),
+                      first_non_flip_V(initV), iteration_count(0), max_iterations(1),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
             record_vert(false), record_energy(false), record_minArea(false),
@@ -324,13 +326,20 @@ public:
 
     std::vector<bool> is_boundary_vertex;
 
+    bool custom_criteria_met;
     bool solutionFound;
     double lastFunctionValue;
 
     VectorXd lastGradient;
 
-    bool locally_injective_Found;
     int  iteration_count;
+    int  max_iterations;
+
+    bool non_flip_Found;
+    int  first_non_flip_iteration;
+    Matrix2Xd first_non_flip_V;
+
+    bool locally_injective_Found;
     int  first_locally_injective_iteration;
     Matrix2Xd first_locally_injective_V;
 
@@ -390,7 +399,6 @@ public:
     //custom stop criteria
     bool stopQ()
     {
-        iteration_count += 1;
         if (stopCode == "no_flip_degenerate") {
             return stopQ_no_flip_degenerate();
         } else if (stopCode == "locally_injective") {
@@ -414,6 +422,12 @@ public:
             if (minA <= 0) no_flip_degenerate = false;
         }
 
+        if (no_flip_degenerate && !non_flip_Found) {
+            non_flip_Found = true;
+            first_non_flip_iteration = iteration_count;
+            first_non_flip_V = formulation.get_V();
+        }
+
         return no_flip_degenerate;
     }
 
@@ -421,30 +435,26 @@ public:
         if (!stopQ_no_flip_degenerate()) {
             return false;
         } else {
+            bool is_locally_injective = false;
             // check if there is any over-winding interior vertices
             if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices_Record.empty()) {
                 if (nb_winded_interior_vertices_Record.back() == 0) {
-                    if (!locally_injective_Found) {
-                        locally_injective_Found = true;
-                        first_locally_injective_iteration = iteration_count;
-                        first_locally_injective_V = formulation.get_V();
-                    }
-                    return true;
+                    is_locally_injective = true;
                 }
-                else return false;
             } else {
                 std::vector<size_t> winded_vertices;
                 compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
                 if (winded_vertices.empty()) {
-                    if (!locally_injective_Found) {
-                        locally_injective_Found = true;
-                        first_locally_injective_iteration = iteration_count;
-                        first_locally_injective_V = formulation.get_V();
-                    }
-                    return true;
+                    is_locally_injective = true;
                 }
-                else return false;
             }
+
+            if (is_locally_injective && !locally_injective_Found) {
+                locally_injective_Found = true;
+                first_locally_injective_iteration = iteration_count;
+                first_locally_injective_V = formulation.get_V();
+            }
+            return is_locally_injective;
         }
     }
 
@@ -460,11 +470,6 @@ public:
             if (!stopQ_locally_injective()) {
                 return false;
             } else {
-                // record the first locally injective iteration
-                locally_injective_Found = true;
-                first_locally_injective_iteration = iteration_count;
-                first_locally_injective_V = formulation.get_V();
-
                 // check global injectivity:
                 // if no arc-arc intersection is found in the last energy/gradient evaluation,
                 // then global injectivity is surely achieved
@@ -498,6 +503,24 @@ public:
             for (int j = 0; j < ndim; ++j)
             {
                 out_file << V(j,i) << " ";
+            }
+        }
+        out_file << std::endl;
+
+        // first_non_flip_iter
+        out_file << "first_non_flip_iter " << 1 << " " << 1 << "\n";
+        out_file << first_non_flip_iteration << " ";
+        out_file << std::endl;
+
+        /// first_non_flip_V
+        nv = first_non_flip_V.cols();
+        ndim = first_non_flip_V.rows();
+        out_file << "first_non_flip_V " << nv << " " << ndim << "\n";
+        for (int i = 0; i < nv; ++i)
+        {
+            for (int j = 0; j < ndim; ++j)
+            {
+                out_file << first_non_flip_V(j,i) << " ";
             }
         }
         out_file << std::endl;
@@ -609,7 +632,7 @@ class null_Grad_Exception : public std::exception
 } null_grad_exception;
 
 //
-double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
+double objective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
 {
     Optimization_Data *data = (Optimization_Data *) my_func_data;
 
@@ -622,20 +645,34 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         return data->lastFunctionValue;
     }
 
-    // convert x to Eigen::VectorXd
-    VectorXd x_vec(x.size());
-    for (int i = 0; i < x.size(); ++i) {
-        x_vec(i) = x[i];
-    }
-
     // compute energy/gradient
     double energy;
     VectorXd g_vec;
     if (grad.empty()) {  // only energy is required
-        energy = data->formulation.compute_energy(x_vec);
+//        energy = data->formulation.compute_energy(x_vec);
+        energy = -1; // energy is not computed
+        // record information for new l-bfgs iteration
+        data->iteration_count += 1;
+        data->record();
+        // custom stop criterion
+        if (data->stopQ())
+        {
+            data->custom_criteria_met = true;
+            data->solutionFound = true;
+        }
+        // max iter criterion
+        if (data->iteration_count >= data->max_iterations) {
+            data->solutionFound = true;
+        }
         //test
-        data->nb_feval += 1;
+//        data->nb_feval += 1;
     } else { // gradient is required
+        // convert x to Eigen::VectorXd
+        VectorXd x_vec(x.size());
+        for (int i = 0; i < x.size(); ++i) {
+            x_vec(i) = x[i];
+        }
+        //
         energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
         for (int i = 0; i < g_vec.size(); ++i) {
             if (isnan(g_vec(i))) {
@@ -646,20 +683,10 @@ double ojbective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
         data->nb_geval += 1;
+        // record energy
+        data->lastFunctionValue = energy;
         // record gradient
         data->lastGradient = g_vec;
-    }
-
-    //record information (only when current energy is less than previous)
-    if (energy < data->lastFunctionValue) {
-        data->lastFunctionValue = energy;
-        data->record();
-    }
-
-    // custom stop criterion
-    if (data->stopQ())
-    {
-        data->solutionFound = true;
     }
 
     return energy;
@@ -713,14 +740,16 @@ int main(int argc, char const *argv[])
     opt.set_ftol_rel(options.ftol_rel);
     opt.set_xtol_abs(options.xtol_abs);
     opt.set_xtol_rel(options.xtol_rel);
-    opt.set_maxeval(options.maxeval);
+//    opt.set_maxeval(options.maxeval);
+    opt.set_maxeval(-1);
 
-    //pass relevant options to LiftedData
+    //pass relevant options to Optimization_Data
     data.stopCode = options.stopCode;
     data.set_record_flags(options.record);
+    data.max_iterations = options.maxeval;
 
     //
-    opt.set_min_objective(ojbective_func, &data);
+    opt.set_min_objective(objective_func, &data);
 
     std::vector<double> x(data.x0.size());
     for (int i = 0; i < data.x0.size(); ++i) {
@@ -737,7 +766,9 @@ int main(int argc, char const *argv[])
         std::cout << "result: ";
         switch(result) {
             case nlopt::SUCCESS:
-                std::cout << "SUCCESS" << std::endl;
+                if (data.iteration_count >= data.max_iterations) {
+                    std::cout << "MAXITER_REACHED" << std::endl;
+                } else std::cout << "SUCCESS" << std::endl;
                 break;
             case nlopt::STOPVAL_REACHED:
                 std::cout << "STOPVAL_REACHED" << std::endl;
@@ -759,11 +790,12 @@ int main(int argc, char const *argv[])
                 break;
         }
         std::cout << "met custom stop criteria (" << options.stopCode << "): ";
-        if (data.solutionFound) std::cout << "yes" << std::endl;
+        if (data.custom_criteria_met) std::cout << "yes" << std::endl;
         else std::cout << "no" << std::endl;
         //
-        //std::cout << data.nb_feval << " function evalations, ";
-        //std::cout << data.nb_geval << " gradient evalations." << std::endl;
+        std::cout << data.iteration_count << " iterations" << std::endl;
+//        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
+        std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
 
     }
     catch(std::exception &e) {

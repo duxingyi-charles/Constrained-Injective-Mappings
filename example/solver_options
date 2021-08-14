@@ -1,24 +1,29 @@
 form
-Tutte
+harmonic
 alphaRatio
-1e-6
+1.
 alpha
--1
+0.000546182
+theta
+0.1
 ftol_abs
-1e-8
+-1
 ftol_rel
-1e-8
+1.e-9
 xtol_abs
-1e-8
+-1
 xtol_rel
-1e-8
+1.e-9
 algorithm
 LBFGS
 maxeval
-10000
+10
 stopCode
-all_good
+none
 record
-vert	1
+vert	0
 energy	1
-minArea	1
+minArea	0
+nbWindVert	0
+grad	0
+gradNorm	1
