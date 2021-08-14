@@ -635,7 +635,6 @@ class null_Grad_Exception : public std::exception
 double objective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
 {
     Optimization_Data *data = (Optimization_Data *) my_func_data;
-//    std::cout << "global_current_iteration = " << global_current_iteration << std::endl;
 
     if (data->solutionFound) {
         if (!grad.empty()) {
@@ -644,12 +643,6 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
             }
         }
         return data->lastFunctionValue;
-    }
-
-    // convert x to Eigen::VectorXd
-    VectorXd x_vec(x.size());
-    for (int i = 0; i < x.size(); ++i) {
-        x_vec(i) = x[i];
     }
 
     // compute energy/gradient
@@ -672,8 +665,14 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
             data->solutionFound = true;
         }
         //test
-        data->nb_feval += 1;
+//        data->nb_feval += 1;
     } else { // gradient is required
+        // convert x to Eigen::VectorXd
+        VectorXd x_vec(x.size());
+        for (int i = 0; i < x.size(); ++i) {
+            x_vec(i) = x[i];
+        }
+        //
         energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
         for (int i = 0; i < g_vec.size(); ++i) {
             if (isnan(g_vec(i))) {
@@ -689,27 +688,6 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
         // record gradient
         data->lastGradient = g_vec;
     }
-
-    // record information for new l-bfgs iteration
-//    if (data->iteration_count < global_current_iteration) {
-//        data->iteration_count += 1;
-////        std::cout << "---------------------------" << std::endl;
-////        std::cout << "iteration_count = " << data->iteration_count << std::endl;
-////        std::cout << "global_current_iteration = " << global_current_iteration << std::endl;
-////        std::cout << "********" << std::endl;
-////        data->lastFunctionValue = energy;
-//        data->record();
-//        // custom stop criterion
-//        if (data->stopQ())
-//        {
-//            data->custom_criteria_met = true;
-//            data->solutionFound = true;
-//        }
-//        // max iter criterion
-//        if (data->iteration_count >= data->max_iterations) {
-//            data->solutionFound = true;
-//        }
-//    }
 
     return energy;
 }
@@ -815,9 +793,9 @@ int main(int argc, char const *argv[])
         if (data.custom_criteria_met) std::cout << "yes" << std::endl;
         else std::cout << "no" << std::endl;
         //
-        std::cout << data.iteration_count << " iterations, ";
-        std::cout << data.nb_feval << " pure function evaluations, ";
-        std::cout << data.nb_geval << " function/gradient evaluations." << std::endl;
+        std::cout << data.iteration_count << " iterations" << std::endl;
+//        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
+        std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
 
     }
     catch(std::exception &e) {
