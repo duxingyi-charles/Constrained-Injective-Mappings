@@ -635,6 +635,7 @@ class null_Grad_Exception : public std::exception
 double objective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
 {
     Optimization_Data *data = (Optimization_Data *) my_func_data;
+//    std::cout << "global_current_iteration = " << global_current_iteration << std::endl;
 
     if (data->solutionFound) {
         if (!grad.empty()) {
@@ -655,7 +656,21 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
     double energy;
     VectorXd g_vec;
     if (grad.empty()) {  // only energy is required
-        energy = data->formulation.compute_energy(x_vec);
+//        energy = data->formulation.compute_energy(x_vec);
+        energy = -1; // energy is not computed
+        // record information for new l-bfgs iteration
+        data->iteration_count += 1;
+        data->record();
+        // custom stop criterion
+        if (data->stopQ())
+        {
+            data->custom_criteria_met = true;
+            data->solutionFound = true;
+        }
+        // max iter criterion
+        if (data->iteration_count >= data->max_iterations) {
+            data->solutionFound = true;
+        }
         //test
         data->nb_feval += 1;
     } else { // gradient is required
@@ -669,26 +684,32 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
         data->nb_geval += 1;
+        // record energy
+        data->lastFunctionValue = energy;
         // record gradient
         data->lastGradient = g_vec;
     }
 
-    //record information (only when current energy is less than previous)
-    if (energy < data->lastFunctionValue) {
-        data->iteration_count += 1;
-        data->lastFunctionValue = energy;
-        data->record();
-        // custom stop criterion
-        if (data->stopQ())
-        {
-            data->custom_criteria_met = true;
-            data->solutionFound = true;
-        }
-        // max iter criterion
-        if (data->iteration_count >= data->max_iterations) {
-            data->solutionFound = true;
-        }
-    }
+    // record information for new l-bfgs iteration
+//    if (data->iteration_count < global_current_iteration) {
+//        data->iteration_count += 1;
+////        std::cout << "---------------------------" << std::endl;
+////        std::cout << "iteration_count = " << data->iteration_count << std::endl;
+////        std::cout << "global_current_iteration = " << global_current_iteration << std::endl;
+////        std::cout << "********" << std::endl;
+////        data->lastFunctionValue = energy;
+//        data->record();
+//        // custom stop criterion
+//        if (data->stopQ())
+//        {
+//            data->custom_criteria_met = true;
+//            data->solutionFound = true;
+//        }
+//        // max iter criterion
+//        if (data->iteration_count >= data->max_iterations) {
+//            data->solutionFound = true;
+//        }
+//    }
 
     return energy;
 }
