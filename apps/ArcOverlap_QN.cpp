@@ -294,7 +294,6 @@ public:
                       first_non_flip_V(initV), iteration_count(0), max_iterations(1),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0),nb_geval(0),
-            TLC_time(0), arc_seg_time(0), arc_occupancy_time(0),
             record_vert(false), record_energy(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_gradient(false),
             record_gradient_norm(false),
@@ -346,10 +345,6 @@ public:
 
     int nb_feval;
     int nb_geval;
-
-    Time_duration TLC_time;
-    Time_duration arc_seg_time;
-    Time_duration arc_occupancy_time;
 
     //from options
     std::string stopCode;
@@ -653,7 +648,6 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
     // compute energy/gradient
     double energy;
     VectorXd g_vec;
-    Time_duration TLC_time, arc_seg_time, arc_occupancy_time;
 
     if (grad.empty()) {  // only energy is required
 //        energy = data->formulation.compute_energy(x_vec);
@@ -680,7 +674,7 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
             x_vec(i) = x[i];
         }
         //
-        energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec, TLC_time, arc_seg_time, arc_occupancy_time);
+        energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
         for (int i = 0; i < g_vec.size(); ++i) {
             if (isnan(g_vec(i))) {
                 std::cout << "g_vec(" << i << ") is nan." << std::endl;
@@ -690,9 +684,6 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
         data->nb_geval += 1;
-        data->TLC_time += TLC_time;
-        data->arc_seg_time += arc_seg_time;
-        data->arc_occupancy_time += arc_occupancy_time;
         // record energy
         data->lastFunctionValue = energy;
         // record gradient
@@ -811,13 +802,10 @@ int main(int argc, char const *argv[])
         std::cout << data.iteration_count << " iterations" << std::endl;
 //        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
         std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
-        std::cout << "TLC time: " << data.TLC_time.count() << " seconds." << std::endl;
-        std::cout << "arc segment time: " << data.arc_seg_time.count() << " seconds." << std::endl;
-        std::cout << "arc occupancy time: " << data.arc_occupancy_time.count() << " seconds." << std::endl;
-        // test global timings
-        std::cout << "glob TLC time: " << global_TLC_time.count() << " seconds." << std::endl;
-        std::cout << "glob arc segment time: " << global_arc_seg_time.count() << " seconds." << std::endl;
-        std::cout << "glob arc occupancy time: " << global_arc_occupancy_time.count() << " seconds." << std::endl;
+        // timings
+        std::cout << "TLC time: " << global_TLC_time.count() << " seconds." << std::endl;
+        std::cout << "arc segment time: " << global_arc_seg_time.count() << " seconds." << std::endl;
+        std::cout << "arc occupancy time: " << global_arc_occupancy_time.count() << " seconds." << std::endl;
 
     }
     catch(std::exception &e) {

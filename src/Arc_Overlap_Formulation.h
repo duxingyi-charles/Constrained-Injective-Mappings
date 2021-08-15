@@ -8,8 +8,6 @@
 #include "Total_Lifted_Content.h"
 #include "Arc_Occupancy.h"
 
-//#include <chrono>
-//typedef std::chrono::duration<double> Time_duration;
 #include "timing.h"
 
 
@@ -26,9 +24,6 @@ public:
 
 
     double compute_energy(const Eigen::VectorXd &x);
-    double compute_energy(const Eigen::VectorXd& x,
-        Time_duration& TLC_time, Time_duration& arc_seg_time,
-        Time_duration& arc_occupancy_time);
 
     // compute arc overlap energy,
     // record the decomposition of the energy in energy_list
@@ -37,9 +32,6 @@ public:
 
     double compute_energy_with_gradient(const Eigen::VectorXd &x,
                                         Eigen::VectorXd &grad);
-    double compute_energy_with_gradient(const Eigen::VectorXd& x,
-        Eigen::VectorXd& grad, Time_duration& TLC_time, Time_duration& arc_seg_time,
-        Time_duration& arc_occupancy_time);
 
     // approximate Hessian using the Hessian of (TLC - total signed area)
     double compute_energy_with_gradient_approxProjectedHessian(const Eigen::VectorXd &x,
