@@ -8,8 +8,9 @@
 #include "Total_Lifted_Content.h"
 #include "Arc_Occupancy.h"
 
-#include <chrono>
-typedef std::chrono::duration<double> Time_duration;
+//#include <chrono>
+//typedef std::chrono::duration<double> Time_duration;
+#include "timing.h"
 
 
 using namespace Eigen;

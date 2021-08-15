@@ -193,7 +193,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, 
     double tlc_energy = tlc.compute_total_lifted_content_with_gradient(V, tlc_grad);
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     TLC_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
-
+    global_TLC_time += TLC_time;
     //
     std::vector<Point> vertices(V.cols());
     for (int i = 0; i < V.cols(); ++i) {
@@ -206,6 +206,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, 
         arc_seg_grad);
     t2 = std::chrono::steady_clock::now();
     arc_seg_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    global_arc_seg_time += arc_seg_time;
     // arc occupancy
     t1 = std::chrono::steady_clock::now();
     Matrix2Xd arc_occupancy_grad;
@@ -213,6 +214,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, 
         arc_occupancy_grad);
     t2 = std::chrono::steady_clock::now();
     arc_occupancy_time = std::chrono::duration_cast<Time_duration>(t2 - t1);
+    global_arc_occupancy_time += arc_occupancy_time;
     has_found_intersection = arcOccupancy.has_found_intersection;
 
     // full gradient
