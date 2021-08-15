@@ -770,6 +770,8 @@ int main(int argc, char const *argv[])
     }
     double minf;
 
+    // reset timings
+    reset_timings();
     //optimize
     try{
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -812,6 +814,10 @@ int main(int argc, char const *argv[])
         std::cout << "TLC time: " << data.TLC_time.count() << " seconds." << std::endl;
         std::cout << "arc segment time: " << data.arc_seg_time.count() << " seconds." << std::endl;
         std::cout << "arc occupancy time: " << data.arc_occupancy_time.count() << " seconds." << std::endl;
+        // test global timings
+        std::cout << "glob TLC time: " << global_TLC_time.count() << " seconds." << std::endl;
+        std::cout << "glob arc segment time: " << global_arc_seg_time.count() << " seconds." << std::endl;
+        std::cout << "glob arc occupancy time: " << global_arc_occupancy_time.count() << " seconds." << std::endl;
 
     }
     catch(std::exception &e) {
