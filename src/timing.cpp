@@ -9,7 +9,7 @@ Time_duration global_arc_seg_time;
 Time_duration global_arc_occupancy_time;
 
 void reset_timings() {
-    global_TLC_time = 0;
-    global_arc_seg_time = 0;
-    global_arc_occupancy_time = 0;
+    global_TLC_time = Time_duration::zero();
+    global_arc_seg_time = Time_duration::zero();
+    global_arc_occupancy_time = Time_duration::zero();
 }
