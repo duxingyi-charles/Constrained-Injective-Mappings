@@ -4,6 +4,7 @@
 
 #include "Arc_Occupancy.h"
 #include "Arrangement.h"
+#include "timing.h"
 
 double Arc_Occupancy::compute_arc_occupancy(const std::vector<Point> &vertices,
                                             const std::vector<std::pair<size_t, size_t>> &edges) {
@@ -103,10 +104,13 @@ double Arc_Occupancy::compute_arc_occupancy_with_gradient(const std::vector<Poin
 //                                     pts,pEdges,is_intersection_point,
 //                                     arc1_of_intersection, arc2_of_intersection,
 //                                     edges_of_cell,windings);
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     Arrangement::compute_multi_arrangement(vertices,arc_edges,
                                      pts,pEdges,is_intersection_point,
                                      arc1_of_intersection, arc2_of_intersection,
                                      edges_of_cell,windings);
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    global_arc_arrangement_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
     has_found_intersection = (pts.size() > vertices.size());
 
     // compute occupancy and its derivatives wrt. pts and edge radii

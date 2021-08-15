@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <limits>
 #include "Arrangement.h"
+#include "timing.h"
 
 void Arrangement::compute_arrangement(const std::vector<Point> &vertices, const std::vector<Arc_Edge> &edges,
                                       std::vector<Point> &pts, std::vector<SubArc_Edge> &pEdges,
@@ -60,6 +61,7 @@ void Arrangement::subdivide_polyArc_by_intersection(
         std::vector<int>  &arc2_of_intersection)
 {
     // init
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     pts = vertices;
     pEdges.clear();
 
@@ -74,7 +76,11 @@ void Arrangement::subdivide_polyArc_by_intersection(
     typedef std::pair<size_t, double> PID_Angle_Pair;
     std::vector<std::vector<PID_Angle_Pair>> edge_intersection_list(edges.size()); // record intersections on each input arc edge
 
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    global_arc_intersection_init_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
+
     // filter potentially intersecting arcs by bounding box
+    t1 = std::chrono::steady_clock::now();
     std::vector<Rectangle> bbox_list;
     bbox_list.resize(edges.size());
     for (const auto& e : edges) {
@@ -100,9 +106,11 @@ void Arrangement::subdivide_polyArc_by_intersection(
             }
         }
     }
+    t2 = std::chrono::steady_clock::now();
+    global_arc_bbox_intersection_test_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
 
     // compute intersections
-
+    t1 = std::chrono::steady_clock::now();
     // parallel version 1: separate parallel part from non-parallel part.
     std::vector<std::vector<Intersection_Point>> intersection_results(potential_pair_list.size());
 #pragma omp parallel
@@ -187,7 +195,11 @@ void Arrangement::subdivide_polyArc_by_intersection(
     //    }
     //}
 
+    t2 = std::chrono::steady_clock::now();
+    global_arc_arc_intersection_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
+
     // subdivide input arcs
+    t1 = std::chrono::steady_clock::now();
     auto PID_angle_less_than = [](const PID_Angle_Pair &left, const PID_Angle_Pair &right)
     { return left.second < right.second; };
     auto PID_angle_greater_than = [](const PID_Angle_Pair &left, const PID_Angle_Pair &right)
@@ -232,6 +244,9 @@ void Arrangement::subdivide_polyArc_by_intersection(
             }
         }
     }
+
+    t2 = std::chrono::steady_clock::now();
+    global_arc_subdivision_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
 
     //done
 }
@@ -516,21 +531,28 @@ void Arrangement::compute_multi_arrangement(const std::vector<Point> &vertices, 
                                             std::vector<std::vector<SubArc_Edge>> &edges_of_cell,
                                             std::vector<int> &windings) {
     // step 1: subdivide input arcs by their intersections
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     subdivide_polyArc_by_intersection(vertices, edges,pts, pEdges,is_intersection_point,
                                       arc1_of_intersection,arc2_of_intersection);
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    global_subdivide_polyArc_by_intersection_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
 
     // step 2: get all arrangement chains (a cell can have many bounding chains)
+    t1 = std::chrono::steady_clock::now();
     std::vector<std::vector<size_t>> eIn;
     std::vector<std::vector<size_t>> eOut;
     std::vector<std::vector<size_t>> chains;
     decompose_into_cells(pts, pEdges, eIn, eOut, chains);
-
-
+    t2 = std::chrono::steady_clock::now();
+    global_decompose_into_cells_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
 
     // step 3: compute arrangement cells and their winding numbers
+    t1 = std::chrono::steady_clock::now();
     std::vector<std::vector<size_t>> cells;
     compute_cells_and_windings(pEdges,eIn,eOut,chains,cells,windings);
 //    compute_cell_windings(pEdges, eIn, eOut, cells, windings);
+    t2 = std::chrono::steady_clock::now();
+    global_compute_cells_and_windings_time += std::chrono::duration_cast<Time_duration>(t2 - t1);
 
     // convert each cell from a list of half-edge indices to a list arc edges
     edges_of_cell.clear();

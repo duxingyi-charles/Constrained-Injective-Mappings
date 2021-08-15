@@ -803,10 +803,7 @@ int main(int argc, char const *argv[])
 //        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
         std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
         // timings
-        std::cout << "TLC time: " << global_TLC_time.count() << " seconds." << std::endl;
-        std::cout << "arc segment time: " << global_arc_seg_time.count() << " seconds." << std::endl;
-        std::cout << "arc occupancy time: " << global_arc_occupancy_time.count() << " seconds." << std::endl;
-
+        print_timings();
     }
     catch(std::exception &e) {
         std::cout << "nlopt failed: " << e.what() << std::endl;
