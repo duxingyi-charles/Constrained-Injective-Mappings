@@ -741,7 +741,10 @@ int main(int argc, char const *argv[])
     opt.set_xtol_abs(options.xtol_abs);
     opt.set_xtol_rel(options.xtol_rel);
 //    opt.set_maxeval(options.maxeval);
-    opt.set_maxeval(-1);
+    // bug of NLopt: setting maxeval to -1 other than a positive integer will yield different optimization process 
+    //opt.set_maxeval(-1);
+    // instead, we set maxeval to a number much larger than the user-specified max number of iterations
+    opt.set_maxeval(options.maxeval * 100);
 
     //pass relevant options to Optimization_Data
     data.stopCode = options.stopCode;
