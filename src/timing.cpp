@@ -43,7 +43,7 @@ void print_timings() {
     std::cout << "** subdivide polyArc time: " << global_subdivide_polyArc_by_intersection_time.count() << " seconds." << std::endl;
     std::cout << "### arc intersection init time: " << global_arc_intersection_init_time.count() << " seconds." << std::endl;
     std::cout << "### arc bbox intersection test time: " << global_arc_bbox_intersection_test_time.count() << " seconds." << std::endl;
-    std::cout << "### arc arc intersection time: " << global_arc_arc_intersection_time.count() << " seconds." << std::endl;
+    std::cout << "### arc-arc intersection time: " << global_arc_arc_intersection_time.count() << " seconds." << std::endl;
     std::cout << "### arc subdivision time: " << global_arc_subdivision_time.count() << " seconds." << std::endl;
     std::cout << "** decompose into cells time: " << global_decompose_into_cells_time.count() << " seconds." << std::endl;
     std::cout << "** compute cells windings time: " << global_compute_cells_and_windings_time.count() << " seconds." << std::endl;
