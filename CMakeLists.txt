@@ -64,6 +64,9 @@ target_link_libraries(arcOverlap_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::jso
 add_executable(arcOverlap_Iso_QN apps/ArcOverlap_Iso_QN.cpp)
 target_link_libraries(arcOverlap_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
+add_executable(sTLC_Iso_QN "apps/sTLC_Iso_QN.cpp")
+target_link_libraries(sTLC_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+
 # suitesparse
 
 set(SUITESPARSE_INCLUDE_DIR /usr/local/include CACHE PATH "suitesparse include directory")
