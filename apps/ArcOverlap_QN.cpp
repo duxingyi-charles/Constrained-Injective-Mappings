@@ -363,7 +363,7 @@ public:
     std::vector<int> nb_winded_interior_vertices_Record;
 
 
-    // record information we cared about
+    // record information we care about
     void set_record_flags(const std::vector<std::string> &record)
     {
         for (auto i = record.begin(); i != record.end(); ++i)
