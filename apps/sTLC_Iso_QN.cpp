@@ -12,7 +12,7 @@
 
 #include <nlopt.hpp>
 
-#include "Arc_Overlap_Iso_Formulation.h"
+#include "sTLC_Iso_Formulation.h"
 #include "optimization_util.h"
 
 using namespace Eigen;
@@ -24,15 +24,15 @@ class NloptOptionManager
 public:
     //default options
     NloptOptionManager() :
-        form("Tutte"), alpha(-1), theta(0.1), scale_rest_mesh(false),
+        form("Tutte"), alpha(1), scale_rest_mesh(false),
         ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-        maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
+        maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {};
     //import options from file
     explicit NloptOptionManager(const char* filename) :
-        form("Tutte"), alpha(-1), theta(0.1), scale_rest_mesh(false),
+        form("Tutte"), alpha(1), scale_rest_mesh(false),
         ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-        maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
+        maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {
         if (!importOptions(filename))
         {
@@ -46,7 +46,6 @@ public:
     std::string form;
     //    double alphaRatio;
     double alpha;
-    double theta; //arc angle
     bool scale_rest_mesh;
 
     // optimization options
@@ -62,9 +61,7 @@ public:
     void printOptions()
     {
         std::cout << "form:\t" << form << "\n";
-        //        std::cout << "alphaRatio:\t" << alphaRatio << "\n";
         std::cout << "alpha:\t" << alpha << "\n";
-        std::cout << "theta:\t" << theta << "\n";
         std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
         std::cout << "ftol_abs:\t" << ftol_abs << "\n";
         std::cout << "ftol_rel:\t" << ftol_rel << "\n";
@@ -74,9 +71,9 @@ public:
         std::cout << "algorithm:\t" << algorithm << "\n";
         std::cout << "stopCode:\t" << stopCode << "\n";
         std::cout << "record:  \t" << "{ ";
-        for (std::vector<std::string>::iterator i = record.begin(); i != record.end(); ++i)
+        for (auto & i : record)
         {
-            std::cout << *i << " ";
+            std::cout << i << " ";
         }
         std::cout << "}" << std::endl;
     }
@@ -121,12 +118,12 @@ public:
             }
             in_file >> alpha;
 
-            in_file >> optName;
-            if (optName != "theta") {
-                abnormal = "theta";
-                break;
-            }
-            in_file >> theta;
+//            in_file >> optName;
+//            if (optName != "theta") {
+//                abnormal = "theta";
+//                break;
+//            }
+//            in_file >> theta;
 
             in_file >> optName;
             if (optName != "scale_rest_mesh") {
@@ -243,6 +240,28 @@ public:
                 record.emplace_back("nbWindVert");
             }
 
+            in_file >> optName;
+            if (optName != "grad") {
+                abnormal = "grad";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("grad");
+            }
+
+            in_file >> optName;
+            if (optName != "gradNorm") {
+                abnormal = "gradNorm";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("gradNorm");
+            }
+
             break;
         }
 
@@ -271,17 +290,20 @@ public:
         const VectorXi& handles,
         const std::string& form,
         double alpha,
-        double theta,
         bool scale_rest_mesh) :
-        F(restF), solutionFound(false), locally_injective_Found(false),
-        first_locally_injective_iteration(-1), iteration_count(0),
+        F(restF), solutionFound(false), custom_criteria_met(false),
+        locally_injective_Found(false),
+        first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
         first_locally_injective_V(initV),
+        non_flip_Found(false), first_non_flip_iteration(-1),
+        first_non_flip_V(initV),
         lastFunctionValue(HUGE_VAL), stopCode("none"),
         nb_feval(0), nb_geval(0),
-        record_vert(false), record_energy(false), record_minArea(false),
+        record_vert(false), record_energy(false), record_gradient(false),
+        record_gradient_norm(false), record_minArea(false),
         record_nb_winded_interior_vertices(false),
-        vertRecord(0), energyRecord(0), minAreaRecord(0),
-        formulation(restV, initV, restF, handles, form, alpha, theta, scale_rest_mesh),
+        vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
+        formulation(restV, initV, restF, handles, form, alpha, scale_rest_mesh),
         is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
@@ -292,11 +314,14 @@ public:
             is_boundary_vertex[e.first] = true;
             is_boundary_vertex[e.second] = true;
         }
+
+        // initialize lastGradient
+        lastGradient.setZero(x0.size());
     };
 
     ~Optimization_Data() = default;
 
-    Arc_Overlap_Iso_Formulation formulation;
+    sTLC_Iso_Formulation formulation;
 
     //    Matrix2Xd V;
     //    VectorXi freeI;
@@ -306,13 +331,20 @@ public:
 
     std::vector<bool> is_boundary_vertex;
 
+    bool custom_criteria_met;
     bool solutionFound;
     double lastFunctionValue;
 
+    VectorXd lastGradient;
+
     bool locally_injective_Found;
     int  iteration_count;
+    int  max_iterations;
     int  first_locally_injective_iteration;
     Matrix2Xd first_locally_injective_V;
+    bool non_flip_Found;
+    int first_non_flip_iteration;
+    Matrix2Xd first_non_flip_V;
 
     int nb_feval;
     int nb_geval;
@@ -322,29 +354,37 @@ public:
     //record data
     bool record_vert;
     bool record_energy;
+    bool record_gradient;
+    bool record_gradient_norm;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
+    std::vector<VectorXd> gradRecord;
+    std::vector<double> gradNormRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
 
 
     // record information we cared about
     void set_record_flags(const std::vector<std::string>& record)
     {
-        for (auto i = record.begin(); i != record.end(); ++i)
+        for (const auto & i : record)
         {
-            if (*i == "vert")    record_vert = true;
-            if (*i == "energy")  record_energy = true;
-            if (*i == "minArea") record_minArea = true;
-            if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
+            if (i == "vert")    record_vert = true;
+            if (i == "energy")  record_energy = true;
+            if (i == "minArea") record_minArea = true;
+            if (i == "nbWindVert") record_nb_winded_interior_vertices = true;
+            if (i == "grad")  record_gradient = true;
+            if (i == "gradNorm") record_gradient_norm = true;
         }
     }
 
     void record()
     {
         if (record_vert) vertRecord.push_back(formulation.get_V());
+        if (record_gradient) gradRecord.push_back(lastGradient);
+        if (record_gradient_norm) gradNormRecord.push_back(lastGradient.norm());
         //you need to make sure lastFunctionValue is up-to-date
         if (record_energy) energyRecord.push_back(lastFunctionValue);
         if (record_minArea)
@@ -362,16 +402,15 @@ public:
     //custom stop criteria
     bool stopQ()
     {
-        iteration_count += 1;
         if (stopCode == "no_flip_degenerate") {
             return stopQ_no_flip_degenerate();
         }
         else if (stopCode == "locally_injective") {
             return stopQ_locally_injective();
         }
-        else if (stopCode == "globally_injective") {
-            return stopQ_globally_injective();
-        }
+//        else if (stopCode == "globally_injective") {
+//            return stopQ_globally_injective();
+//        }
         else {
             //default
             return false;
@@ -390,6 +429,12 @@ public:
             if (minA <= 0) no_flip_degenerate = false;
         }
 
+        if (!non_flip_Found && no_flip_degenerate) {
+            non_flip_Found = true;
+            first_non_flip_iteration = iteration_count;
+            first_non_flip_V = formulation.get_V();
+        }
+
         return no_flip_degenerate;
     }
 
@@ -398,60 +443,28 @@ public:
             return false;
         }
         else {
+            bool is_locally_injective = false;
             // check if there is any over-winding interior vertices
             if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices_Record.empty()) {
                 if (nb_winded_interior_vertices_Record.back() == 0) {
-                    if (!locally_injective_Found) {
-                        locally_injective_Found = true;
-                        first_locally_injective_iteration = iteration_count;
-                        first_locally_injective_V = formulation.get_V();
-                    }
-                    return true;
+                    is_locally_injective = true;
                 }
-                else return false;
             }
             else {
                 std::vector<size_t> winded_vertices;
                 // todo: only compute winding number if the one ring of the vertex is free
                 compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
                 if (winded_vertices.empty()) {
-                    if (!locally_injective_Found) {
-                        locally_injective_Found = true;
-                        first_locally_injective_iteration = iteration_count;
-                        first_locally_injective_V = formulation.get_V();
-                    }
-                    return true;
+                    is_locally_injective = true;
                 }
-                else return false;
             }
-        }
-    }
 
-    bool stopQ_globally_injective() {
-        if (locally_injective_Found) {
-            // locally injective mesh is already found
-            if (!stopQ_no_flip_degenerate()) {
-                return false;
-            }
-            else {
-                return !(formulation.has_found_intersection);
-            }
-        }
-        else {
-            if (!stopQ_locally_injective()) {
-                return false;
-            }
-            else {
-                // record the first locally injective iteration
+            if (is_locally_injective && !locally_injective_Found) {
                 locally_injective_Found = true;
                 first_locally_injective_iteration = iteration_count;
                 first_locally_injective_V = formulation.get_V();
-
-                // check global injectivity:
-                // if no arc-arc intersection is found in the last energy/gradient evaluation,
-                // then global injectivity is surely achieved
-                return !(formulation.has_found_intersection);
             }
+            return is_locally_injective;
         }
     }
 
@@ -480,6 +493,24 @@ public:
             for (int j = 0; j < ndim; ++j)
             {
                 out_file << V(j, i) << " ";
+            }
+        }
+        out_file << std::endl;
+
+        // first_non_flip_iter
+        out_file << "first_non_flip_iter " << 1 << " " << 1 << "\n";
+        out_file << first_non_flip_iteration << " ";
+        out_file << std::endl;
+
+        /// first_non_flip_V
+        nv = first_non_flip_V.cols();
+        ndim = first_non_flip_V.rows();
+        out_file << "first_non_flip_V " << nv << " " << ndim << "\n";
+        for (int i = 0; i < nv; ++i)
+        {
+            for (int j = 0; j < ndim; ++j)
+            {
+                out_file << first_non_flip_V(j, i) << " ";
             }
         }
         out_file << std::endl;
@@ -552,6 +583,30 @@ public:
             out_file << std::endl;
         }
 
+        if (record_gradient)
+        {
+            auto n_record = gradRecord.size();
+            ndim = gradRecord[0].size();
+            out_file << "grad " << n_record << " " << " " << ndim << std::endl;
+            for (const auto & grad : gradRecord) {
+                for (int i = 0; i < ndim; ++i) {
+                    out_file << grad(i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_gradient_norm)
+        {
+            unsigned n_record = gradNormRecord.size();
+            out_file << "gradNorm " << n_record << std::endl;
+            for (int i = 0; i < n_record; ++i)
+            {
+                out_file << gradNormRecord[i] << " ";
+            }
+            out_file << std::endl;
+        }
+
         out_file.close();
         return true;
     }
@@ -569,32 +624,45 @@ class null_Grad_Exception : public std::exception
 //
 double objective_func(const std::vector<double>& x, std::vector<double>& grad, void* my_func_data)
 {
-    Optimization_Data* data = (Optimization_Data*)my_func_data;
+    auto* data = (Optimization_Data*)my_func_data;
 
     if (data->solutionFound) {
         if (!grad.empty()) {
-            for (int i = 0; i < grad.size(); ++i) {
-                grad[i] = 0;
+            for (double & i : grad) {
+                i = 0;
             }
         }
         return data->lastFunctionValue;
     }
 
-    // convert x to Eigen::VectorXd
-    VectorXd x_vec(x.size());
-    for (int i = 0; i < x.size(); ++i) {
-        x_vec(i) = x[i];
-    }
-
     // compute energy/gradient
     double energy;
     VectorXd g_vec;
+
     if (grad.empty()) {  // only energy is required
-        energy = data->formulation.compute_energy(x_vec);
+        energy = -1;
+        data->iteration_count += 1;
+        data->record();
+        // custom stop criterion
+        if (data->stopQ())
+        {
+            data->custom_criteria_met = true;
+            data->solutionFound = true;
+        }
+        // max iter criterion
+        if (data->iteration_count >= data->max_iterations) {
+            data->solutionFound = true;
+        }
         //test
 //        data->nb_feval += 1;
     }
     else { // gradient is required
+        // convert x to Eigen::VectorXd
+        VectorXd x_vec(x.size());
+        for (int i = 0; i < x.size(); ++i) {
+            x_vec(i) = x[i];
+        }
+        //
         energy = data->formulation.compute_energy_with_gradient(x_vec, g_vec);
         for (int i = 0; i < g_vec.size(); ++i) {
             if (isnan(g_vec(i))) {
@@ -604,21 +672,12 @@ double objective_func(const std::vector<double>& x, std::vector<double>& grad, v
             grad[i] = g_vec(i);
         }
         //test
-//        data->nb_geval += 1;
+        data->nb_geval += 1;
+        // record energy
+        data->lastFunctionValue = energy;
+        // record gradient
+        data->lastGradient = g_vec;
     }
-
-    //    if (energy < data->lastFunctionValue) {
-            //record information
-    data->lastFunctionValue = energy;
-    data->record();
-
-    // custom stop criterion
-    if (data->stopQ())
-    {
-        data->solutionFound = true;
-    }
-    //    }
-
 
     return energy;
 }
@@ -639,7 +698,7 @@ int main(int argc, char const* argv[])
 
     bool succeed = importData(dataFile, restV, initV, F, handles);
     if (!succeed) {
-        std::cout << "usage: arcOverlap_Iso_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: sTLC_Iso_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
     }
 
@@ -649,8 +708,9 @@ int main(int argc, char const* argv[])
     //    options.printOptions();
 
 
-        //init
-    Optimization_Data data(restV, initV, F, handles, options.form, options.alpha, options.theta, options.scale_rest_mesh);
+    //init
+    Optimization_Data data(restV, initV, F, handles, options.form,
+                           options.alpha, options.scale_rest_mesh);
 
     auto nv = restV.cols();
     auto nfree = nv - handles.size();
@@ -671,11 +731,16 @@ int main(int argc, char const* argv[])
     opt.set_ftol_rel(options.ftol_rel);
     opt.set_xtol_abs(options.xtol_abs);
     opt.set_xtol_rel(options.xtol_rel);
-    opt.set_maxeval(options.maxeval);
+//    opt.set_maxeval(options.maxeval);
+    // bug of NLopt: setting maxeval to -1 other than a positive integer will yield different optimization process
+    //opt.set_maxeval(-1);
+    // instead, we set maxeval to a number much larger than the user-specified max number of iterations
+    opt.set_maxeval(options.maxeval * 100);
 
-    //pass relevant options to LiftedData
+    //pass relevant options to Optimization_Data
     data.stopCode = options.stopCode;
     data.set_record_flags(options.record);
+    data.max_iterations = options.maxeval;
 
     //
     opt.set_min_objective(objective_func, &data);
@@ -717,12 +782,12 @@ int main(int argc, char const* argv[])
             break;
         }
         std::cout << "met custom stop criteria (" << options.stopCode << "): ";
-        if (data.solutionFound) std::cout << "yes" << std::endl;
+        if (data.custom_criteria_met) std::cout << "yes" << std::endl;
         else std::cout << "no" << std::endl;
         //
-        //std::cout << data.nb_feval << " function evalations, ";
-        //std::cout << data.nb_geval << " gradient evalations." << std::endl;
-
+        std::cout << data.iteration_count << " iterations" << std::endl;
+//        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
+        std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
     }
     catch (std::exception& e) {
         std::cout << "nlopt failed: " << e.what() << std::endl;
