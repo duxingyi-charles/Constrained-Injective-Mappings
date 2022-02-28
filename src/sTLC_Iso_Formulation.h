@@ -6,18 +6,17 @@
 #define S_TLC_ISO_FORMULATION_H
 
 #include "Total_Lifted_Content_Isometric.h"
-#include "Arc_Occupancy.h"
 
 using namespace Eigen;
 
-class Subtracted_TLC_Iso_Formulation {
+class sTLC_Iso_Formulation {
 public:
-    Subtracted_TLC_Iso_Formulation(const MatrixXd& rest_vertices, Matrix2Xd init_vertices,
+    sTLC_Iso_Formulation(const MatrixXd& rest_vertices, Matrix2Xd init_vertices,
         Matrix3Xi faces,
         const VectorXi& handles, const std::string& form,
         double alpha, bool scale_rest_mesh);
 
-    ~Subtracted_TLC_Iso_Formulation() = default;
+    ~sTLC_Iso_Formulation() = default;
 
 
     double compute_energy(const Eigen::VectorXd& x);
@@ -75,13 +74,11 @@ private:
     // TLC_Iso energy
     Total_Lifted_Content_Isometric tlc_iso;
 
-
     // current V of target mesh
     Matrix2Xd V;
 
     // initial variable vector
     VectorXd x0;
-
 
 };
 
