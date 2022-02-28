@@ -26,6 +26,9 @@ void Total_Lifted_Content_Isometric::initialize(const Eigen::MatrixXd &rest_vert
     double total_rest_area = restA.sum();
 
     if (form != "harmonic") { // Tutte form
+        // in tutte-uniform form,
+        // we assume the auxiliary triangles are equilateral triangles
+        // whose total measure is the same as the input rest mesh.
         double regular_tri_area = total_rest_area/F.cols();
         double regular_tri_squared_length = 4 * regular_tri_area / sqrt(3);
         restA = Eigen::VectorXd::Constant(F.cols(), regular_tri_area);
