@@ -24,13 +24,13 @@ class NloptOptionManager
 public:
     //default options
     NloptOptionManager() :
-        form("Tutte"), alpha(1), scale_rest_mesh(false),
+        form("Tutte"), alpha(1), scale_rest_mesh(false), subtract_total_signed_area(true),
         ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
         maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {};
     //import options from file
     explicit NloptOptionManager(const char* filename) :
-        form("Tutte"), alpha(1), scale_rest_mesh(false),
+        form("Tutte"), alpha(1), scale_rest_mesh(false), subtract_total_signed_area(true),
         ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
         maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {
@@ -44,9 +44,11 @@ public:
 
     // energy formulation options
     std::string form;
-    //    double alphaRatio;
     double alpha;
     bool scale_rest_mesh;
+
+    // whether to subtract total signed area
+    bool subtract_total_signed_area;
 
     // optimization options
     double ftol_abs;
@@ -63,6 +65,7 @@ public:
         std::cout << "form:\t" << form << "\n";
         std::cout << "alpha:\t" << alpha << "\n";
         std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
+        std::cout << "subtract_total_signed_area:\t" << subtract_total_signed_area << "\n";
         std::cout << "ftol_abs:\t" << ftol_abs << "\n";
         std::cout << "ftol_rel:\t" << ftol_rel << "\n";
         std::cout << "xtol_abs:\t" << xtol_abs << "\n";
@@ -131,6 +134,13 @@ public:
                 break;
             }
             in_file >> scale_rest_mesh;
+
+            in_file >> optName;
+            if (optName != "subtract_total_signed_area") {
+                abnormal = "subtract_total_signed_area";
+                break;
+            }
+            in_file >> subtract_total_signed_area;
 
             in_file >> optName;
             if (optName != "ftol_abs")
@@ -290,7 +300,8 @@ public:
         const VectorXi& handles,
         const std::string& form,
         double alpha,
-        bool scale_rest_mesh) :
+        bool scale_rest_mesh,
+        bool subtract_total_signed_area) :
         F(restF), solutionFound(false), custom_criteria_met(false),
         locally_injective_Found(false),
         first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
@@ -303,7 +314,8 @@ public:
         record_gradient_norm(false), record_minArea(false),
         record_nb_winded_interior_vertices(false),
         vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
-        formulation(restV, initV, restF, handles, form, alpha, scale_rest_mesh),
+        formulation(restV, initV, restF, handles, form, alpha,
+                    scale_rest_mesh, subtract_total_signed_area),
         is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
@@ -709,8 +721,8 @@ int main(int argc, char const* argv[])
 
 
     //init
-    Optimization_Data data(restV, initV, F, handles, options.form,
-                           options.alpha, options.scale_rest_mesh);
+    Optimization_Data data(restV, initV, F, handles, options.form,options.alpha,
+                           options.scale_rest_mesh, options.subtract_total_signed_area);
 
     auto nv = restV.cols();
     auto nfree = nv - handles.size();
