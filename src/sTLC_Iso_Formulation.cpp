@@ -7,8 +7,8 @@
 
 sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                            const VectorXi &handles, const std::string &form, double alpha,
-                                           bool scale_rest_mesh)  :
-        F(std::move(faces)), V(std::move(init_vertices))
+                                           bool scale_rest_mesh, bool subtract_total_signed_area)  :
+        F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area)
 {
     // compute freeI: indices of free vertices
     int nV = rest_vertices.cols();
@@ -104,14 +104,18 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
     // TLC (isometric)
     double tlc_iso_energy = tlc_iso.compute_total_lifted_content_isometric(V);
 
-    // convert V to a vector of Point
-    std::vector<Point> vertices(V.cols());
-    for (int i = 0; i < V.cols(); ++i) {
-        vertices[i] = V.col(i);
+    if (subtract_total_signed_area) {
+        // convert V to a vector of Point
+        std::vector<Point> vertices(V.cols());
+        for (int i = 0; i < V.cols(); ++i) {
+            vertices[i] = V.col(i);
+        }
+        double total_signed_area = compute_total_signed_area(vertices, boundary_edges);
+        //
+        return tlc_iso_energy - total_signed_area;
+    } else {
+        return tlc_iso_energy;
     }
-    double total_signed_area = compute_total_signed_area(vertices, boundary_edges);
-    //
-    return tlc_iso_energy - total_signed_area;
 }
 
 void sTLC_Iso_Formulation::update_V(const VectorXd &x) {
@@ -130,14 +134,18 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_
     VectorXd lifted_content_list;
     tlc_iso.compute_total_lifted_content_isometric(V,lifted_content_list);
 
-    // signed area
-    VectorXd signed_area_list;
-    compute_signed_tri_areas(V, F, signed_area_list);
+    if (subtract_total_signed_area) {
+        // signed area
+        VectorXd signed_area_list;
+        compute_signed_tri_areas(V, F, signed_area_list);
 
-    // fill the energy decomposition into energy_list
-    energy_list.resize(lifted_content_list.size());
-    for (int i = 0; i < lifted_content_list.size(); ++i) {
-        energy_list(i) = lifted_content_list(i) - signed_area_list(i);
+        // fill the energy decomposition into energy_list
+        energy_list.resize(lifted_content_list.size());
+        for (int i = 0; i < lifted_content_list.size(); ++i) {
+            energy_list(i) = lifted_content_list(i) - signed_area_list(i);
+        }
+    } else {
+        energy_list = lifted_content_list;
     }
 
     return energy_list.sum();
@@ -150,26 +158,39 @@ double sTLC_Iso_Formulation::compute_energy_with_gradient(const VectorXd &x, Vec
     Matrix2Xd tlc_grad;
     double tlc_energy = tlc_iso.compute_total_lifted_content_isometric_with_gradient(V, tlc_grad);
 
-    //
-    std::vector<Point> vertices(V.cols());
-    for (int i = 0; i < V.cols(); ++i) {
-        vertices[i] = V.col(i);
+    if (subtract_total_signed_area) {
+        //
+        std::vector<Point> vertices(V.cols());
+        for (int i = 0; i < V.cols(); ++i) {
+            vertices[i] = V.col(i);
+        }
+        Matrix2Xd total_signed_area_grad;
+        total_signed_area_grad.setZero(2, vertices.size());
+        double total_signed_area = compute_total_signed_area_with_gradient(
+                vertices, boundary_edges, total_signed_area_grad);
+
+        // full gradient
+        Matrix2Xd m_grad = tlc_grad - total_signed_area_grad;
+
+        // gradient of free vertices
+        grad.resize(freeI.size() * m_grad.rows());
+        for (int i = 0; i < freeI.size(); ++i) {
+            grad(2*i) = m_grad(0,freeI(i));
+            grad(2*i+1) = m_grad(1,freeI(i));
+        }
+
+        // energy
+        return tlc_energy - total_signed_area;
     }
-    Matrix2Xd total_signed_area_grad;
-    total_signed_area_grad.setZero(2, vertices.size());
-    double total_signed_area = compute_total_signed_area_with_gradient(
-            vertices,boundary_edges, total_signed_area_grad);
+    else {
+        // gradient of free vertices
+        grad.resize(freeI.size() * tlc_grad.rows());
+        for (int i = 0; i < freeI.size(); ++i) {
+            grad(2*i) = tlc_grad(0,freeI(i));
+            grad(2*i+1) = tlc_grad(1,freeI(i));
+        }
 
-    // full gradient
-    Matrix2Xd m_grad = tlc_grad - total_signed_area_grad;
-
-    // gradient of free vertices
-    grad.resize(freeI.size() * m_grad.rows());
-    for (int i = 0; i < freeI.size(); ++i) {
-        grad(2*i) = m_grad(0,freeI(i));
-        grad(2*i+1) = m_grad(1,freeI(i));
+        // energy
+        return tlc_energy;
     }
-
-    // energy
-    return tlc_energy - total_signed_area;
 }

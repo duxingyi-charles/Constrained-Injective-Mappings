@@ -14,7 +14,7 @@ public:
     sTLC_Iso_Formulation(const MatrixXd& rest_vertices, Matrix2Xd init_vertices,
         Matrix3Xi faces,
         const VectorXi& handles, const std::string& form,
-        double alpha, bool scale_rest_mesh);
+        double alpha, bool scale_rest_mesh, bool subtract_total_signed_area);
 
     ~sTLC_Iso_Formulation() = default;
 
@@ -79,6 +79,9 @@ private:
 
     // initial variable vector
     VectorXd x0;
+
+    // whether to subtract total signed area
+    bool subtract_total_signed_area;
 
 };
 
