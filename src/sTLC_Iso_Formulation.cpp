@@ -67,8 +67,8 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
     }
 
     // (optional) scale rest mesh to have the same area as init mesh
-    double init_area = compute_total_signed_mesh_area(init_vertices,faces);
-    double rest_area = compute_total_unsigned_area(rest_vertices,faces);
+    double init_area = compute_total_signed_mesh_area(V,F);
+    double rest_area = compute_total_unsigned_area(rest_vertices,F);
     double rest_scale = 1;
     if (scale_rest_mesh && handles.size() > 1 && init_area > 0) {
         rest_scale = sqrt(init_area / rest_area);
