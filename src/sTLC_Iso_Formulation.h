@@ -83,6 +83,11 @@ private:
     // whether to subtract total signed area
     bool subtract_total_signed_area;
 
+    // whether mesh boundary is fixed
+    bool fixed_boundary;
+    // signed area of the fixed boundary
+    double boundary_signed_area;
+
 };
 
 

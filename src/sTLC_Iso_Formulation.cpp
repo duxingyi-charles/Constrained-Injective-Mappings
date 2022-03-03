@@ -96,6 +96,19 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
 
     // extract boundary edges
     extract_mesh_boundary_edges(F, boundary_edges);
+
+    // check if the boundary is fixed
+    fixed_boundary = true;
+    for (const auto& edge: boundary_edges) {
+        if (freeQ[edge.first] || freeQ[edge.second]) {
+            fixed_boundary = false;
+            break;
+        }
+    }
+    boundary_signed_area = 0;
+    if (fixed_boundary) {
+        boundary_signed_area = init_area;
+    }
 }
 
 double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
@@ -105,6 +118,9 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
     double tlc_iso_energy = tlc_iso.compute_total_lifted_content_isometric(V);
 
     if (subtract_total_signed_area) {
+        if (fixed_boundary) {
+            return tlc_iso_energy - boundary_signed_area;
+        }
         // convert V to a vector of Point
         std::vector<Point> vertices(V.cols());
         for (int i = 0; i < V.cols(); ++i) {
@@ -113,7 +129,8 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
         double total_signed_area = compute_total_signed_area(vertices, boundary_edges);
         //
         return tlc_iso_energy - total_signed_area;
-    } else {
+    }
+    else {
         return tlc_iso_energy;
     }
 }
@@ -158,7 +175,7 @@ double sTLC_Iso_Formulation::compute_energy_with_gradient(const VectorXd &x, Vec
     Matrix2Xd tlc_grad;
     double tlc_energy = tlc_iso.compute_total_lifted_content_isometric_with_gradient(V, tlc_grad);
 
-    if (subtract_total_signed_area) {
+    if (subtract_total_signed_area && !fixed_boundary) {
         //
         std::vector<Point> vertices(V.cols());
         for (int i = 0; i < V.cols(); ++i) {
@@ -191,6 +208,10 @@ double sTLC_Iso_Formulation::compute_energy_with_gradient(const VectorXd &x, Vec
         }
 
         // energy
-        return tlc_energy;
+        if (subtract_total_signed_area) { // the boundary must be fixed
+            return tlc_energy - boundary_signed_area;
+        } else {
+            return tlc_energy;
+        }
     }
 }
