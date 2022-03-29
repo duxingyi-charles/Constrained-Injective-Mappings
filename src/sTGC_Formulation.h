@@ -90,6 +90,8 @@ private:
     // signed area of the fixed boundary
     double boundary_signed_area;
 
+    // whether to skip non-free triangles
+    bool skip_non_free_triangles;
 };
 
 

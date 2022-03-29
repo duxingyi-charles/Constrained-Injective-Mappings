@@ -8,7 +8,8 @@
 sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                    const VectorXi &handles, const std::string &form, double alpha, double lambda1,
                                    double lambda2, double k, bool scale_rest_mesh, bool subtract_total_signed_area) :
-        F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area)
+        F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area),
+        skip_non_free_triangles(false)
 {
     // compute freeI: indices of free vertices
     int nV = rest_vertices.cols();
@@ -95,7 +96,9 @@ sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init
     tgc.initialize(rest_scale * rest_vertices, F, form, alpha, lambda1, lambda2, k);
 //    std::cout << "free_faceI: " << std::endl;
 //    std::cout << free_faceI << std::endl;
-    tgc.set_free_faceI(free_faceI);
+    if (skip_non_free_triangles) {
+        tgc.set_free_faceI(free_faceI);
+    }
 
     // extract boundary edges
     extract_mesh_boundary_edges(F, boundary_edges);
