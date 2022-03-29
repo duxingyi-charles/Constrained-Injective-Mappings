@@ -8,7 +8,8 @@
 sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                            const VectorXi &handles, const std::string &form, double alpha,
                                            bool scale_rest_mesh, bool subtract_total_signed_area)  :
-        F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area)
+        F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area), 
+        skip_non_free_triangles(false)
 {
     // compute freeI: indices of free vertices
     int nV = rest_vertices.cols();
@@ -42,7 +43,7 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
             ++n_free_face;
         }
     }
-//    std::cout << "n_free_face = " << n_free_face << std::endl;
+    //std::cout << "n_free_face = " << n_free_face << std::endl;
     free_faceI.resize(n_free_face);
     ii = 0;
     for (int i = 0; i < nF; ++i) {
@@ -92,12 +93,19 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
     tlc_iso.initialize(rest_scale * rest_vertices, F, form, alpha);
 //    std::cout << "free_faceI: " << std::endl;
 //    std::cout << free_faceI << std::endl;
-    tlc_iso.set_free_faceI(free_faceI);
+    if (skip_non_free_triangles) {
+        tlc_iso.set_free_faceI(free_faceI);
+    }
+
+    // test
+    //double tlc_iso_energy = tlc_iso.compute_total_lifted_content_isometric(V);
+    //std::cout << "tlc_iso_energy(initV) = " << tlc_iso_energy << std::endl;
 
     // extract boundary edges
     extract_mesh_boundary_edges(F, boundary_edges);
 
     // check if the boundary is fixed
+    //std::cout << "number of boundary edges = " << boundary_edges.size() << std::endl;
     fixed_boundary = true;
     for (const auto& edge: boundary_edges) {
         if (freeQ[edge.first] || freeQ[edge.second]) {
@@ -107,7 +115,9 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
     }
     boundary_signed_area = 0;
     if (fixed_boundary) {
+        //std::cout << "mesh boundary is fixed." << std::endl;
         boundary_signed_area = init_area;
+        //std::cout << "boundary_signed_area = " << boundary_signed_area << std::endl;
     }
 }
 
