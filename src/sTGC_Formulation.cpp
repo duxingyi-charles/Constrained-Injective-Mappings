@@ -238,12 +238,23 @@ double sTGC_Formulation::compute_energy_with_gradient_projectedHessian(const Vec
                                                                                                           generalized_content_list,
                                                                                                           tgc_grad,
                                                                                                           Hess);
+        energy_list = generalized_content_list;
+
     } else {
         tgc_energy = tgc.compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(V, freeI,
                                                                                                    F_free,
                                                                                                    generalized_content_list,
                                                                                                    tgc_grad,
                                                                                                    Hess);
+        // signed area
+        VectorXd signed_area_list;
+        compute_signed_tri_areas(V, F, signed_area_list);
+
+        // fill the energy decomposition into energy_list
+        energy_list.resize(generalized_content_list.size());
+        for (int i = 0; i < generalized_content_list.size(); ++i) {
+            energy_list(i) = generalized_content_list(i) - signed_area_list(i);
+        }
     }
 
     if (subtract_total_signed_area && !fixed_boundary) {
