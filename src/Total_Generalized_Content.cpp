@@ -52,13 +52,14 @@ void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices,
         pFpx_list.resize(F.cols(), pFpx);
     } else { // harmonic form
         rest_invEdgeMat.reserve(F.cols());
+        Eigen::Matrix2d rest_edge_mat;
         for (int i = 0; i < F.cols(); ++i) {
             rest_invEdgeMat.emplace_back();
             compute_edge_matrix(rest_vertices.col(F(0,i)),
                                 rest_vertices.col(F(1,i)),
                                 rest_vertices.col(F(2,i)),
-                                rest_invEdgeMat.back());
-            rest_invEdgeMat.back() = rest_invEdgeMat.back().inverse();
+                                rest_edge_mat);
+            rest_invEdgeMat.back() = rest_edge_mat.inverse();
         }
         // compute derivative of deformation gradient w.r.t. target vertices
         pFpx_list.reserve(F.cols());
@@ -366,22 +367,23 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     double I2 = s1*s1 + s2*s2;
     double I3 = s1*s2;
     // Analytic Eigensystem of f-Hessian
+    double energy_density = energy / rest_area;
     //// twist
-    double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy - 1;
+    double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy_density - 1;
     Eigen::VectorXd eigen_vec_twist;
     vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_twist);
     //// flip
-    double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy + 1;
+    double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy_density + 1;
     Eigen::VectorXd eigen_vec_flip;
-    vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
+    vectorize((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_flip);
     //// scale
     Eigen::VectorXd vec_d1, vec_d2;
     vectorize(U.col(0) * V.col(0).transpose(), vec_d1);
     vectorize(U.col(1) * V.col(1).transpose(), vec_d2);
 
-    double energy_cube = energy * energy * energy;
+    double energy_cube = energy_density * energy_density * energy_density;
     double a11 = (coeff_diag + two_alpha_lambda1*s2*s2)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s2*s2)/energy_cube;
     double a22 = (coeff_diag + two_alpha_lambda1*s1*s1)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s1*s1)/energy_cube;
     double a12 = (coeff_off_diag_subtracted*I3 + one_plus_two_alpha_lambda2*I3*(one_plus_two_alpha_lambda2*I3*I3+two_alpha_lambda1*I2))/energy_cube-1;
@@ -558,21 +560,22 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
     double I2 = s1*s1 + s2*s2;
     double I3 = s1*s2;
     // Analytic Eigensystem of f-Hessian
+    double energy_density = energy / rest_area;
     //// twist
-    double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy;
+    double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy_density;
     Eigen::VectorXd eigen_vec_twist;
     vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_twist);
     //// flip
-    double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy;
+    double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy_density;
     Eigen::VectorXd eigen_vec_flip;
-    vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
+    vectorize((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_flip);
     //// scale
     Eigen::VectorXd vec_d1, vec_d2;
     vectorize(U.col(0) * V.col(0).transpose(), vec_d1);
     vectorize(U.col(1) * V.col(1).transpose(), vec_d2);
-    double energy_cube = energy * energy * energy;
+    double energy_cube = energy_density * energy_density * energy_density;
     //
     double a11 = (coeff_diag + two_alpha_lambda1*s2*s2)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s2*s2)/energy_cube;
     double a22 = (coeff_diag + two_alpha_lambda1*s1*s1)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s1*s1)/energy_cube;
