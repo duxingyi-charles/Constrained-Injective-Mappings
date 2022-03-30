@@ -22,7 +22,7 @@ using namespace std;
 typedef Eigen::CholmodSupernodalLLT<SpMat> CholmodSolver;
 
 // export Eigen Matrix
-bool exportMatrix(std::string filename, const MatrixXd &mat) {
+bool exportMatrix(const std::string& filename, const MatrixXd &mat) {
     std::ofstream out_file(filename);
     if (!out_file.is_open()) {
         std::cerr << "Failed to open " << filename << "!" << std::endl;
@@ -54,7 +54,7 @@ public:
             maxeval(10000), line_search_gamma(1e-4),
             algorithm("ProjectedNewton"), stopCode("globally_injective"),
             record(),
-            save_vert(false), resFile("") {};
+            save_vert(false) {};
 
     //import options from file
     SolverOptionManager(const char *option_filename, const char *result_filename) :
@@ -82,7 +82,7 @@ public:
     double ftol_rel;
     double xtol_abs;
     double xtol_rel;
-    double gtol_abs;  //todo: add gtol_abs. also need to change code in Mathematica
+    double gtol_abs;
     int maxeval;
     double line_search_gamma;
     std::string algorithm;
@@ -111,9 +111,9 @@ public:
         std::cout << "algorithm:\t" << algorithm << "\n";
         std::cout << "stopCode:\t" << stopCode << "\n";
         std::cout << "record:  \t" <<  "{ ";
-        for (std::vector<std::string>::iterator i = record.begin(); i != record.end(); ++i)
+        for (auto & i : record)
         {
-            std::cout << *i << " ";
+            std::cout << i << " ";
         }
         std::cout << "}" << std::endl;
         //
@@ -279,25 +279,25 @@ public:
             }
 
             in_file >> optName;
-            if (optName != "gradient") {
-                normal = "gradient";
+            if (optName != "grad") {
+                normal = "grad";
                 break;
             }
             selected = 0;
             in_file >> selected;
             if (selected > 0) {
-                record.emplace_back("gradient");
+                record.emplace_back("grad");
             }
 
             in_file >> optName;
-            if (optName != "gNorm") {
-                normal = "gNorm";
+            if (optName != "gradNorm") {
+                normal = "gradNorm";
                 break;
             }
             selected = 0;
             in_file >> selected;
             if (selected > 0) {
-                record.emplace_back("gNorm");
+                record.emplace_back("gradNorm");
             }
 
             in_file >> optName;
@@ -392,14 +392,15 @@ public:
             first_locally_injective_iteration(-1), iteration_count(0),
             first_locally_injective_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
-            nb_feval(0),nb_geval(0), stop_type("unknown"),
+            nb_feval(0), nb_geval(0), stop_type("unknown"),
             record_vert(false), record_energy(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_gradient(false),
-            record_gradientNorm(false),record_searchDirection(false),record_searchNorm(false),
-            record_stepNorm(false),record_stepSize(false),
-            vertRecord(0),energyRecord(0), minAreaRecord(0),nb_winded_interior_vertices_Record(),
-            gradientRecord(), gradientNormRecord(), searchDirectionRecord(),searchNormRecord(),
-            stepNormRecord(),stepSizeRecord(),
+            record_gradient_norm(false), record_searchDirection(false), record_searchNorm(false),
+            record_stepNorm(false), record_stepSize(false),
+            vertRecord(0), energyRecord(0), minAreaRecord(0), nb_winded_interior_vertices_Record(),
+            gradRecord(), gradNormRecord(), searchDirectionRecord(), searchNormRecord(),
+            stepNormRecord(), stepSizeRecord(),
+            save_vert(false),
             formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
             is_boundary_vertex(initV.cols(), false)
     {
@@ -441,10 +442,10 @@ public:
     //record data
     bool record_vert;
     bool record_energy;
+    bool record_gradient;
+    bool record_gradient_norm;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
-    bool record_gradient;
-    bool record_gradientNorm;
     bool record_searchDirection;
     bool record_searchNorm;
     bool record_stepSize;
@@ -453,8 +454,8 @@ public:
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
-    std::vector<VectorXd> gradientRecord;
-    std::vector<double> gradientNormRecord;
+    std::vector<VectorXd> gradRecord;
+    std::vector<double> gradNormRecord;
     std::vector<VectorXd> searchDirectionRecord;
     std::vector<double> searchNormRecord;
     std::vector<double> stepSizeRecord;
@@ -463,25 +464,25 @@ public:
     // save data
     bool save_vert;
 
-    //
+    // for what reason did the solver stop
     std::string stop_type;
 
 
     // record information we cared about
     void set_record_flags(const std::vector<std::string> &record)
     {
-        for (auto i = record.begin(); i != record.end(); ++i)
+        for (const auto & i : record)
         {
-            if (*i == "vert")    record_vert = true;
-            if (*i == "energy")  record_energy = true;
-            if (*i == "minArea") record_minArea = true;
-            if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
-            if (*i == "gradient") record_gradient = true;
-            if (*i == "gNorm") record_gradientNorm = true;
-            if (*i == "searchDirection") record_searchDirection = true;
-            if (*i == "searchNorm") record_searchNorm = true;
-            if (*i == "stepSize") record_stepSize = true;
-            if (*i == "stepNorm") record_stepNorm = true;
+            if (i == "vert")    record_vert = true;
+            if (i == "energy")  record_energy = true;
+            if (i == "minArea") record_minArea = true;
+            if (i == "nbWindVert") record_nb_winded_interior_vertices = true;
+            if (i == "grad") record_gradient = true;
+            if (i == "gradNorm") record_gradient_norm = true;
+            if (i == "searchDirection") record_searchDirection = true;
+            if (i == "searchNorm") record_searchNorm = true;
+            if (i == "stepSize") record_stepSize = true;
+            if (i == "stepNorm") record_stepNorm = true;
         }
     }
 
@@ -686,25 +687,25 @@ public:
         }
 
         if (record_gradient) {
-            auto n_record = gradientRecord.size();
+            auto n_record = gradRecord.size();
             auto n_free = formulation.get_freeI().size();
             ndim = 2;
-            out_file << "gradient " << n_record << " " << n_free << " " << ndim << std::endl;
+            out_file << "grad " << n_record << " " << n_free << " " << ndim << std::endl;
             for (auto i = 0; i < n_record; ++i) {
                 for (auto j = 0; j < n_free; ++j) {
                     for (auto k = 0; k < ndim; ++k) {
-                        out_file << gradientRecord[i](j * ndim + k) << " ";
+                        out_file << gradRecord[i](j * ndim + k) << " ";
                     }
                 }
             }
             out_file << std::endl;
         }
 
-        if (record_gradientNorm) {
-            auto n_record = gradientNormRecord.size();
-            out_file << "gNorm " << n_record << std::endl;
+        if (record_gradient_norm) {
+            auto n_record = gradNormRecord.size();
+            out_file << "gradNorm " << n_record << std::endl;
             for (auto i = 0; i < n_record; ++i) {
-                out_file << gradientNormRecord[i] << " ";
+                out_file << gradNormRecord[i] << " ";
             }
             out_file << std::endl;
         }
@@ -785,9 +786,10 @@ public:
 
 void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager &options, double shrink = 0.7) {
     //handle options
-    //todo: xtol
     double ftol_rel = options.ftol_rel;
     double ftol_abs = options.ftol_abs;
+    double xtol_rel = options.xtol_rel;
+    double xtol_abs = options.xtol_abs;
     double gtol_abs = options.gtol_abs;
     int maxIter = options.maxeval;
     //
@@ -808,8 +810,8 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
     // solver step monitor
     data.lastFunctionValue = energy;
     data.record();
-    if (data.record_gradient) data.gradientRecord.emplace_back(grad);
-    if (data.record_gradientNorm) data.gradientNormRecord.push_back(grad.norm());
+    if (data.record_gradient) data.gradRecord.emplace_back(grad);
+    if (data.record_gradient_norm) data.gradNormRecord.push_back(grad.norm());
     // custom stop criterion
     if (data.stopQ())
     {
@@ -847,9 +849,11 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
 
     // backtracking line search
     double step_size = 1.0;
+    double x_norm = x.norm();
     data.lineSearch(x, p, step_size, grad, energy, energyList, energy_next, shrink, options.line_search_gamma);
     //
     if (data.record_stepSize) data.stepSizeRecord.push_back(step_size);
+    double step_norm = p.norm() * step_size;
     if (data.record_stepNorm) data.stepNormRecord.push_back(p.norm() * step_size);
     //check ftol
     if (fabs(energy_next - energy) < ftol_abs) {
@@ -860,6 +864,15 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         data.stop_type = "ftol_rel reached";
         return;
     }
+    // check xtol
+    if (step_norm < xtol_abs) {
+        data.stop_type = "xtol_abs reached";
+        return;
+    }
+    if (step_norm / x_norm < xtol_rel) {
+        data.stop_type = "xtol_rel reached";
+        return;
+    }
 
 
     for (int i = 1; i < maxIter; ++i) {
@@ -868,8 +881,8 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         // solver step monitor
         data.lastFunctionValue = energy;
         data.record();
-        if (data.record_gradient) data.gradientRecord.emplace_back(grad);
-        if (data.record_gradientNorm) data.gradientNormRecord.push_back(grad.norm());
+        if (data.record_gradient) data.gradRecord.emplace_back(grad);
+        if (data.record_gradient_norm) data.gradNormRecord.push_back(grad.norm());
         // custom stop criterion
         if (data.stopQ())
         {
@@ -891,7 +904,7 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
             data.stop_type = "solver.factorize fail";
             return;
         }
-        VectorXd p = solver.solve(-grad);
+        p = solver.solve(-grad);
         if (solver.info() != Success) {
             cout << "iter " << i << ": solving failed" << endl;
             data.stop_type = "solver.solve fail";
@@ -901,12 +914,13 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         if (data.record_searchNorm) data.searchNormRecord.push_back(p.norm());
 
         // backtracking line search
-        double step_size = 1.0;
+        step_size = 1.0;
+        x_norm = x.norm();
         data.lineSearch(x, p, step_size, grad, energy, energyList, energy_next, shrink, options.line_search_gamma);
-
         //
         if (data.record_stepSize) data.stepSizeRecord.push_back(step_size);
-        if (data.record_stepNorm) data.stepNormRecord.push_back(p.norm() * step_size);
+        step_norm = p.norm() * step_size;
+        if (data.record_stepNorm) data.stepNormRecord.push_back(step_norm);
         //check ftol
         if (fabs(energy_next - energy) < ftol_abs) {
             data.stop_type = "ftol_abs reached";
@@ -914,6 +928,15 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         }
         if (fabs((energy_next - energy) / energy) < ftol_rel) {
             data.stop_type = "ftol_rel reached";
+            return;
+        }
+        // check xtol
+        if (step_norm < xtol_abs) {
+            data.stop_type = "xtol_abs reached";
+            return;
+        }
+        if (step_norm / x_norm < xtol_rel) {
+            data.stop_type = "xtol_rel reached";
             return;
         }
     }
@@ -947,7 +970,6 @@ int main(int argc, char const *argv[]) {
 
     // init
     Optimization_Data data(restV, initV, F, handles, options.form, options.alphaRatio, options.alpha, options.theta);
-
     VectorXd x = data.x0;
 
     //pass relevant options to Optimization_Data
