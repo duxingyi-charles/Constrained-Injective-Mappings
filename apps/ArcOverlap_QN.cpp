@@ -20,28 +20,28 @@ using namespace Eigen;
 
 
 // solver options
-class NloptOptionManager
+class SolverOptionManager
 {
 public:
     //default options
-    NloptOptionManager():
+    SolverOptionManager():
             form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
             maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {};
     //import options from file
-    explicit NloptOptionManager(const char* filename):
+    explicit SolverOptionManager(const char* filename):
             form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
             maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {
         if (!importOptions(filename))
         {
-            std::cout << "NloptOptionManager Warn: default options are used." << std::endl;
+            std::cout << "SolverOptionManager Warn: default options are used." << std::endl;
         }
     };
 
-    ~NloptOptionManager() = default;
+    ~SolverOptionManager() = default;
 
     // energy formulation options
     std::string form;
@@ -714,7 +714,7 @@ int main(int argc, char const *argv[])
     }
 
     //import options
-    NloptOptionManager options(optFile);
+    SolverOptionManager options(optFile);
     //std::cout << "--- options ---" << std::endl;
     //options.printOptions();
 
