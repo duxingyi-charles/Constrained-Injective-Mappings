@@ -70,10 +70,14 @@ target_link_libraries(sTLC_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json 
 add_executable(sTGC_QN "apps/sTGC_QN.cpp")
 target_link_libraries(sTGC_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
+add_executable(sTGC_PN "apps/sTGC_PN.cpp")
+target_link_libraries(sTGC_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+
 # suitesparse
 
 set(SUITESPARSE_INCLUDE_DIR /usr/local/include CACHE PATH "suitesparse include directory")
 target_include_directories(arcOverlap_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
+target_include_directories(sTGC_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
 
 if (WIN32)
     # ------------------------------------------------------------------
@@ -83,9 +87,11 @@ if (WIN32)
     # ------------------------------------------------------------------
     find_package(SuiteSparse CONFIG REQUIRED)
     target_link_libraries(arcOverlap_PN PRIVATE SuiteSparse::cholmod)
+    target_link_libraries(sTGC_PN PRIVATE SuiteSparse::cholmod)
 else()
     set(SUITESPARSE_LIB_DIR /usr/local/lib CACHE PATH "suitesparse library directory")
     target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
+    target_link_libraries(sTGC_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
 endif()
 
 
