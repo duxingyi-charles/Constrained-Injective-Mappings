@@ -3,6 +3,7 @@
 //
 
 #include "geo_util.h"
+#include <Eigen/Geometry>
 #include <set>
 
 Eigen::Vector2d rotate_90deg(const Eigen::Vector2d &vec) {
@@ -95,6 +96,17 @@ double compute_total_signed_area(const std::vector<Point> &vertices,
     return area;
 }
 
+double compute_total_signed_volume(const std::vector<Point3D> &vertices,
+                                   const std::vector<std::array<int,3>> &triangles)
+{
+    Point3D origin(0,0,0);
+    double volume = 0;
+    for (const auto & f : triangles) {
+        volume += compute_tet_signed_volume(vertices[f[0]], vertices[f[1]], vertices[f[2]], origin);
+    }
+    return volume;
+}
+
 double compute_total_signed_area_with_gradient(const std::vector<Point> &vertices,
                                                const std::vector<std::pair<size_t, size_t>> &edges,
                                                Eigen::Matrix2Xd &dArea_dv) {
@@ -111,6 +123,28 @@ double compute_total_signed_area_with_gradient(const std::vector<Point> &vertice
     area /= 2;
 
     return area;
+}
+
+
+double compute_total_signed_volume_with_gradient(const std::vector<Point3D> &vertices,
+                                                 const std::vector<std::array<int,3>> &triangles,
+                                                 Eigen::Matrix3Xd &dVolume_dv)
+{
+    // note: we don't reset dVolume_dv at the beginning
+    double volume = 0;
+    Point3D origin(0,0,0);
+    Eigen::Matrix3Xd grad;
+    for (const auto& f: triangles) {
+        auto i = f[0];
+        auto j = f[1];
+        auto k = f[2];
+        volume += compute_tet_signed_volume_with_gradient(vertices[i], vertices[j], vertices[k], origin, grad);
+        // update derivatives
+        dVolume_dv.col(i) += grad.col(0);
+        dVolume_dv.col(j) += grad.col(1);
+        dVolume_dv.col(k) += grad.col(2);
+    }
+    return volume;
 }
 
 double compute_Heron_tri_area(double d1, double d2, double d3) {
@@ -156,6 +190,19 @@ void compute_signed_tri_areas(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi 
     }
 }
 
+void compute_signed_tet_volumes(const Eigen::Matrix3Xd &V, const Eigen::Matrix4Xi &Tets,
+                                Eigen::VectorXd &volumeList) {
+    int nT = Tets.cols();
+    volumeList.resize(nT);
+    for (int i = 0; i < nT; ++i) {
+        const Point3D &p1 = V.col(Tets(0, i));
+        const Point3D &p2 = V.col(Tets(1, i));
+        const Point3D &p3 = V.col(Tets(2, i));
+        const Point3D &p4 = V.col(Tets(3, i));
+        volumeList(i) = compute_tet_signed_volume(p1, p2, p3, p4);
+    }
+}
+
 double compute_min_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F) {
     Eigen::VectorXd areaList;
     compute_signed_tri_areas(V, F, areaList);
@@ -166,6 +213,12 @@ double compute_total_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Ma
     Eigen::VectorXd areaList;
     compute_signed_tri_areas(V, F, areaList);
     return areaList.sum();
+}
+
+double compute_total_signed_mesh_volume(const Eigen::Matrix3Xd &V,const Eigen::Matrix4Xi &Tets) {
+    Eigen::VectorXd volumeList;
+    compute_signed_tet_volumes(V, Tets, volumeList);
+    return volumeList.sum();
 }
 
 double compute_total_unsigned_area(const Eigen::MatrixXd &V, const Eigen::Matrix3Xi &F) {
@@ -179,6 +232,12 @@ double compute_total_unsigned_area(const Eigen::MatrixXd &V, const Eigen::Matrix
         area += compute_Heron_tri_area(D(0, i), D(1, i), D(2, i));
     }
     return area;
+}
+
+double compute_total_unsigned_volume(const Eigen::Matrix3Xd &V, const Eigen::Matrix4Xi &Tets) {
+    Eigen::VectorXd volumeList;
+    compute_signed_tet_volumes(V, Tets, volumeList);
+    return volumeList.cwiseAbs().sum();
 }
 
 
@@ -231,6 +290,42 @@ extract_mesh_boundary_edges(const Eigen::Matrix3Xi &faces, std::vector<std::pair
 }
 
 
+void extract_mesh_boundary_triangles(const Eigen::Matrix4Xi &tets,
+                                     std::vector<std::array<int,3>>& boundary_triangles)
+{
+    typedef std::array<int ,3> Triangle;
+
+    // collect all half faces
+    std::set<Triangle> half_faces;
+
+    for (int i = 0; i < tets.cols(); ++i) {
+        auto v1 = tets(0,i);
+        auto v2 = tets(1,i);
+        auto v3 = tets(2,i);
+        auto v4 = tets(3,i);
+
+        half_faces.emplace(Triangle {v4, v3, v2});
+        half_faces.emplace(Triangle {v1, v3, v4});
+        half_faces.emplace(Triangle {v1, v4, v2});
+        half_faces.emplace(Triangle {v1, v2, v3});
+    }
+
+    // boundary faces are those without an opposite half face
+    boundary_triangles.clear();
+    for (const auto & hf : half_faces) {
+        Triangle opposite_hf1 {hf[0], hf[2], hf[1]};
+        Triangle opposite_hf2 {hf[2], hf[1], hf[0]};
+        Triangle opposite_hf3 {hf[1], hf[0], hf[2]};
+        if (half_faces.find(opposite_hf1) == half_faces.end() &&
+                half_faces.find(opposite_hf2) == half_faces.end() &&
+                half_faces.find(opposite_hf3) == half_faces.end()
+        ) {
+            boundary_triangles.emplace_back(hf);
+        }
+    }
+}
+
+
 void compute_winded_interior_vertices(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
                                       const std::vector<bool> &is_boundary_vertex,
                                       std::vector<size_t> &winded_vertices) {
@@ -266,3 +361,31 @@ double compute_vec_vec_angle(const Eigen::Vector2d &vec1, const Eigen::Vector2d 
     }
     return angle;
 }
+
+double compute_tet_signed_volume(const Point3D &p1, const Point3D &p2, const Point3D &p3, const Point3D &p4) {
+    return (p4(0)*(p3(1)*(p1(2) - p2(2)) + p2(1)*(p3(2) - p1(2)) + p1(1)*(p2(2) - p3(2))) +
+            p3(0)*(p4(1)*(p2(2) - p1(2)) + p1(1)*(p4(2) - p2(2)) + p2(1)*(p1(2) - p4(2))) +
+            p1(0)*(p4(1)*(p3(2) - p2(2)) + p2(1)*(p4(2) - p3(2)) + p3(1)*(p2(2) - p4(2))) +
+            p2(0)*(p4(1)*(p1(2) - p3(2)) + p3(1)*(p4(2) - p1(2)) + p1(1)*(p3(2) - p4(2))))/6;
+}
+
+double
+compute_tet_signed_volume_with_gradient(const Point3D &p1, const Point3D &p2, const Point3D &p3, const Point3D &p4,
+                                        Eigen::Matrix3Xd &grad) {
+    Eigen::Vector3d e12 = p2 - p1;
+    Eigen::Vector3d e13 = p3 - p1;
+    Eigen::Vector3d e14 = p4 - p1;
+    Eigen::Vector3d e23 = p3 - p2;
+    Eigen::Vector3d e24 = p4 - p2;
+    // gradient
+    grad.resize(3,4);
+    grad.col(0) = e24.cross(e23);
+    grad.col(1) = e13.cross(e14);
+    grad.col(2) = e14.cross(e12);
+    grad.col(3) = e12.cross(e13);
+    grad /= 6;
+    // signed volume
+    return (e12.cross(e13)).dot(e14)/6;
+}
+
+
