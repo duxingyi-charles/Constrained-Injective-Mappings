@@ -72,7 +72,7 @@ public:
         std::cout << "form:\t" << form << "\n";
         std::cout << "alpha:\t" << alpha << "\n";
         std::cout << "lambda1:\t" << lambda1 << "\n";
-        std::cout << "lambda2:\t" << lambda1 << "\n";
+        std::cout << "lambda2:\t" << lambda2 << "\n";
         std::cout << "k:\t" << k << "\n";
         std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
         std::cout << "subtract_total_signed_area:\t" << subtract_total_signed_area << "\n";
