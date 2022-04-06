@@ -5,6 +5,8 @@
 #ifndef TLC_TOTAL_GENERALIZED_CONTENT_3D_H
 #define TLC_TOTAL_GENERALIZED_CONTENT_3D_H
 
+#include "geo_util.h"
+
 #include <Eigen/Sparse>
 typedef Eigen::SparseMatrix<double> SpMat;
 
