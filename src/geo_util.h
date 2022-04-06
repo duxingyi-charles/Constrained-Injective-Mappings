@@ -71,6 +71,9 @@ double compute_total_signed_mesh_volume(const Eigen::Matrix3Xd &V,const Eigen::M
 // compute minimum signed area of a triangle mesh
 double compute_min_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F);
 
+// compute minimum signed volume of a tetrahedron mesh
+double compute_min_signed_mesh_volume(const Eigen::Matrix3Xd &V, const Eigen::Matrix4Xi &Tets);
+
 // compute signed area of all triangles in a mesh
 void compute_signed_tri_areas(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F,
                                 Eigen::VectorXd &areaList);

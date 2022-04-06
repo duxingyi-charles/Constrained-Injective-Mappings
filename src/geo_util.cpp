@@ -209,6 +209,14 @@ double compute_min_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matr
     return areaList.minCoeff();
 }
 
+double compute_min_signed_mesh_volume(const Eigen::Matrix3Xd &V, const Eigen::Matrix4Xi &Tets)
+{
+    Eigen::VectorXd volumeList;
+    compute_signed_tet_volumes(V, Tets, volumeList);
+    return volumeList.minCoeff();
+}
+
+
 double compute_total_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F) {
     Eigen::VectorXd areaList;
     compute_signed_tri_areas(V, F, areaList);
