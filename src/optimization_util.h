@@ -14,4 +14,11 @@ bool importData(const char* filename,
                 Eigen::VectorXi &handles
 );
 
+bool importData3D(const char* filename,
+                  Eigen::Matrix3Xd &restV,
+                  Eigen::Matrix3Xd &initV,
+                  Eigen::Matrix4Xi &F,
+                  Eigen::VectorXi &handles
+);
+
 #endif //TLC_OPTIMIZATION_UTIL_H
