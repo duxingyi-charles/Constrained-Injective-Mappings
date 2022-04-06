@@ -52,7 +52,7 @@ public:
 
     VectorXi get_freeI() const { return freeI; }
 
-    const Matrix2Xd& get_V() const { return V; }
+    const Matrix3Xd& get_V() const { return V; }
 
 private:
     // x = Flatten(freeV)

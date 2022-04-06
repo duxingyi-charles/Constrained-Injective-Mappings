@@ -195,13 +195,14 @@ double sTGC_3D_Formulation::compute_energy_with_gradient(const VectorXd &x, Vect
                 vertices, boundary_triangles, total_signed_content_grad);
 
         // full gradient
-        Matrix2Xd m_grad = tgc_grad - total_signed_content_grad;
+        Matrix3Xd m_grad = tgc_grad - total_signed_content_grad;
 
         // gradient of free vertices
         grad.resize(freeI.size() * m_grad.rows());
         for (int i = 0; i < freeI.size(); ++i) {
-            grad(2*i) = m_grad(0,freeI(i));
-            grad(2*i+1) = m_grad(1,freeI(i));
+            grad(3*i) = m_grad(0,freeI(i));
+            grad(3*i+1) = m_grad(1,freeI(i));
+            grad(3*i+2) = m_grad(2,freeI(i));
         }
 
         // energy
@@ -211,8 +212,9 @@ double sTGC_3D_Formulation::compute_energy_with_gradient(const VectorXd &x, Vect
         // gradient of free vertices
         grad.resize(freeI.size() * tgc_grad.rows());
         for (int i = 0; i < freeI.size(); ++i) {
-            grad(2*i) = tgc_grad(0,freeI(i));
-            grad(2*i+1) = tgc_grad(1,freeI(i));
+            grad(3*i) = tgc_grad(0,freeI(i));
+            grad(3*i+1) = tgc_grad(1,freeI(i));
+            grad(3*i+2) = tgc_grad(2,freeI(i));
         }
 
         // energy
