@@ -4,7 +4,7 @@
 
 #include "Total_Generalized_Content_3D.h"
 
-#include "geo_util.h"
+#include <Eigen/Dense> // for inverse()
 #include "deformation_gradient_util.h"
 
 void Total_Generalized_Content_3D::initialize(const Eigen::Matrix3Xd &rest_vertices, const Eigen::Matrix4Xi &tets,
@@ -154,7 +154,7 @@ double Total_Generalized_Content_3D::compute_total_generalized_content_with_grad
     int vDim = 3;
     int simplex_size = 4; // tetrahedron
     double energy = 0.0;
-    grad = Eigen::Matrix2Xd::Zero(vDim, vertices.cols());
+    grad = Eigen::Matrix3Xd::Zero(vDim, vertices.cols());
 
     for (auto i = 0; i < free_tetI.size(); ++i) {
         auto fi = free_tetI(i);
@@ -218,9 +218,9 @@ double Total_Generalized_Content_3D::compute_generalized_TetVolume_with_gradient
     grad = energy_constant_1 * volume * dV_dx;
     Eigen::VectorXd px = pFpx.transpose() * (grad_constant_1 * squared_rest_volume * vec_pF);
     grad.col(0) += px.segment<3>(0);
-    grad.col(1) += px.segment<3>(4);
-    grad.col(2) += px.segment<3>(8);
-    grad.col(3) += px.segment<3>(12);
+    grad.col(1) += px.segment<3>(3);
+    grad.col(2) += px.segment<3>(6);
+    grad.col(3) += px.segment<3>(9);
     grad /= energy;
 
     return energy;
