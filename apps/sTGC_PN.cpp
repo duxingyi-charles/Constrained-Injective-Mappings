@@ -12,6 +12,7 @@
 
 #include "sTGC_Formulation.h"
 #include "optimization_util.h"
+#include "deformation_gradient_util.h"
 
 #include <Eigen/CholmodSupport>
 
@@ -387,6 +388,28 @@ public:
                 record.emplace_back("stepNorm");
             }
 
+            in_file >> optName;
+            if (optName != "initSingularValues") {
+                abnormal = "initSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("initSingularValues");
+            }
+
+            in_file >> optName;
+            if (optName != "resultSingularValues") {
+                abnormal = "resultSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("resultSingularValues");
+            }
+
             // save values
             in_file >> optName;
             if (optName != "save") {
@@ -446,6 +469,7 @@ public:
             record_vert(false), record_energy(false), record_gradient(false),
             record_gradient_norm(false), record_minArea(false),
             record_nb_winded_interior_vertices(false), record_searchDirection(false), record_searchNorm(false),
+            record_init_singular_values(false), record_result_singular_values(false),
             record_stepNorm(false), record_stepSize(false),
             vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
             save_vert(false),
@@ -462,6 +486,10 @@ public:
             is_boundary_vertex[e.first] = true;
             is_boundary_vertex[e.second] = true;
         }
+
+        // singular values of initial mesh
+        compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), initV, F,
+                                         init_singular_values);
     };
 
     ~Optimization_Data() = default;
@@ -501,6 +529,8 @@ public:
     bool record_searchNorm;
     bool record_stepSize;
     bool record_stepNorm;  // ||x_next - x||
+    bool record_init_singular_values;
+    bool record_result_singular_values;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
@@ -511,6 +541,8 @@ public:
     std::vector<double> searchNormRecord;
     std::vector<double> stepSizeRecord;
     std::vector<double> stepNormRecord;
+    Matrix2Xd init_singular_values;
+
 
     // save data
     bool save_vert;
@@ -534,6 +566,8 @@ public:
             if (i == "searchNorm") record_searchNorm = true;
             if (i == "stepSize") record_stepSize = true;
             if (i == "stepNorm") record_stepNorm = true;
+            if (i == "initSingularValues") record_init_singular_values = true;
+            if (i == "resultSingularValues") record_result_singular_values = true;
         }
     }
 
@@ -820,6 +854,40 @@ public:
             }
             out_file << std::endl;
         }
+
+        if (record_init_singular_values)
+        {
+            auto ncol = init_singular_values.cols();
+            auto nrow = init_singular_values.rows();
+            out_file << "initSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << init_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_result_singular_values)
+        {
+            Matrix2Xd result_singular_values;
+            compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), formulation.get_V(), F,
+                                             result_singular_values);
+            auto ncol = result_singular_values.cols();
+            auto nrow = result_singular_values.rows();
+            out_file << "resultSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << result_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
 
         out_file.close();
         return true;
