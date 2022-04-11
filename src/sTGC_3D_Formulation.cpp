@@ -96,7 +96,8 @@ sTGC_3D_Formulation::sTGC_3D_Formulation(const Matrix3Xd &rest_vertices, Matrix3
     }
 
     // initialize TGC
-    tgc.initialize(rest_scale * rest_vertices, T, form, alpha, lambda1, lambda2, k);
+    scaled_rest_vertices = rest_scale * rest_vertices;
+    tgc.initialize(scaled_rest_vertices, T, form, alpha, lambda1, lambda2, k);
     if (skip_non_free_tets) {
         tgc.set_free_tetI(free_tetI);
     }

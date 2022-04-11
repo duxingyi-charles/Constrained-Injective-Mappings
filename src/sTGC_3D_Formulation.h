@@ -54,6 +54,8 @@ public:
 
     const Matrix3Xd& get_V() const { return V; }
 
+    const Matrix3Xd& get_scaled_rest_vertices() const { return scaled_rest_vertices; }
+
 private:
     // x = Flatten(freeV)
     void update_V(const Eigen::VectorXd& x);
@@ -69,6 +71,9 @@ private:
     VectorXi indexDict;
     // freeV indices of tetrahedrons.
     Matrix4Xi T_free;
+
+    // rest vertices, maybe scaled
+    Matrix3Xd scaled_rest_vertices;
 
     // boundary triangles
     std::vector<std::array<int,3>> boundary_triangles;
