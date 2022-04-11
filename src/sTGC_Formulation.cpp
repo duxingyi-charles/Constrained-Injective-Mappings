@@ -93,7 +93,8 @@ sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init
     }
 
     // initialize TGC
-    tgc.initialize(rest_scale * rest_vertices, F, form, alpha, lambda1, lambda2, k);
+    scaled_rest_vertices = rest_scale * rest_vertices;
+    tgc.initialize(scaled_rest_vertices, F, form, alpha, lambda1, lambda2, k);
 //    std::cout << "free_faceI: " << std::endl;
 //    std::cout << free_faceI << std::endl;
     if (skip_non_free_triangles) {
