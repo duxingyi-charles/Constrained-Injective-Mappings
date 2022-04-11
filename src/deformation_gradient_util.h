@@ -55,4 +55,17 @@ void compute_SVD(const Eigen::Matrix3d& mat,
                  Eigen::Vector3d& singular_values,
                  Eigen::Matrix3d& V);
 
+// compute rotation-variant singular values for every triangle of the mesh
+void compute_tri_mesh_singular_values(const Eigen::MatrixXd& rest_vertices,
+                                      const Eigen::Matrix2Xd& target_vertices,
+                                      const Eigen::Matrix3Xi& F,
+                                      Eigen::Matrix2Xd& singular_values);
+
+// compute rotation-variant singular values for every tetrahedron of the mesh
+void compute_tet_mesh_singular_values(const Eigen::Matrix3Xd& rest_vertices,
+                                      const Eigen::Matrix3Xd& target_vertices,
+                                      const Eigen::Matrix4Xi& Tets,
+                                      Eigen::Matrix3Xd& singular_values);
+
+
 #endif //TLC_DEFORMATION_GRADIENT_UTIL_H

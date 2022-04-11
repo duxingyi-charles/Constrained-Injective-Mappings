@@ -152,5 +152,55 @@ void compute_SVD(const Eigen::Matrix3d &mat, Eigen::Matrix3d &U, Eigen::Vector3d
     }
 }
 
+void compute_tri_mesh_singular_values(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix2Xd &target_vertices,
+                                      const Eigen::Matrix3Xi &F, Eigen::Matrix2Xd &singular_values) {
+    Eigen::Matrix2d rest_edgeMat;
+    Eigen::Matrix2d target_edgeMat;
+    Eigen::Matrix2d deformation_gradient;
+    Eigen::Matrix2d U, V;
+    Eigen::Vector2d s;
+
+    singular_values.resize(2, F.cols());
+    for (int i = 0; i < F.cols(); ++i) {
+        int i1 = F(0,i);
+        int i2 = F(1,i);
+        int i3 = F(2,i);
+
+        compute_edge_matrix(rest_vertices.col(i1), rest_vertices.col(i2), rest_vertices.col(i3),
+                            rest_edgeMat);
+        compute_edge_matrix(target_vertices.col(i1), target_vertices.col(i2), target_vertices.col(i3),
+                            target_edgeMat);
+        deformation_gradient = target_edgeMat * rest_edgeMat.inverse();
+        compute_SVD(deformation_gradient, U, s, V);
+        singular_values.col(i) = s;
+    }
+}
+
+void compute_tet_mesh_singular_values(const Eigen::Matrix3Xd &rest_vertices, const Eigen::Matrix3Xd &target_vertices,
+                                      const Eigen::Matrix4Xi &Tets, Eigen::Matrix3Xd &singular_values) {
+    Eigen::Matrix3d rest_edgeMat;
+    Eigen::Matrix3d target_edgeMat;
+    Eigen::Matrix3d deformation_gradient;
+    Eigen::Matrix3d U, V;
+    Eigen::Vector3d s;
+
+    singular_values.resize(3, Tets.cols());
+    for (int i = 0; i < Tets.cols(); ++i) {
+        int i1 = Tets(0,i);
+        int i2 = Tets(1,i);
+        int i3 = Tets(2,i);
+        int i4 = Tets(3,i);
+
+        compute_edge_matrix(rest_vertices.col(i1), rest_vertices.col(i2), rest_vertices.col(i3),
+                            rest_vertices.col(i4),rest_edgeMat);
+        compute_edge_matrix(target_vertices.col(i1), target_vertices.col(i2), target_vertices.col(i3),
+                            target_vertices.col(i4),target_edgeMat);
+        deformation_gradient = target_edgeMat * rest_edgeMat.inverse();
+        compute_SVD(deformation_gradient, U, s, V);
+        singular_values.col(i) = s;
+    }
+
+}
+
 
 
