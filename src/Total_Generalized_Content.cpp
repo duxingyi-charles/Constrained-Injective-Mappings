@@ -231,6 +231,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
         Eigen::VectorXd &generalized_content_list, Eigen::Matrix2Xd &grad, SpMat &Hess) const {
     int vDim = 2;
     generalized_content_list.resize(F.cols());
+    std::vector<Eigen::Matrix2Xd> gradList(F.cols());
     grad = Eigen::Matrix2Xd::Zero(2, vertices.cols());
 
     std::vector<Eigen::Triplet<double>> tripletList(3 * 3 * vDim * vDim * F.cols());
@@ -249,8 +250,6 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
         vert.col(2) = vertices.col(i3);
         Eigen::Vector3d r = restD.col(i);
 
-
-        Eigen::Matrix2Xd g;
         Eigen::MatrixXd  hess;
         generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(vert,
                                                                                                  scaled_Dirichlet_coef.col(i),
@@ -262,14 +261,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
                                                                                                  one_plus_two_alpha_lambda2,
                                                                                                  coeff_diag,
                                                                                                  coeff_off_diag_subtracted,
-                                                                                                 g, hess);
-
-#pragma omp critical
-        {
-            grad.col(i1) += g.col(0);
-            grad.col(i2) += g.col(1);
-            grad.col(i3) += g.col(2);
-        }
+                                                                                                 gradList[i], hess);
 
         // update Hessian of free vertices
         int current_index = i * 3 * 3 * vDim * vDim;
@@ -290,6 +282,14 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
             }
         }
 
+    }
+
+    // get gradient
+    for (int i = 0; i < F.cols(); i++)
+    {
+        grad.col(F(0, i)) += gradList[i].col(0);
+        grad.col(F(1, i)) += gradList[i].col(1);
+        grad.col(F(2, i)) += gradList[i].col(2);
     }
 
     // add small positive values to the diagonal of Hessian
@@ -424,6 +424,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
         Eigen::VectorXd &generalized_content_list, Eigen::Matrix2Xd &grad, SpMat &Hess) const {
     int vDim = 2;
     generalized_content_list.resize(F.cols());
+    std::vector<Eigen::Matrix2Xd> gradList(F.cols());
     grad = Eigen::Matrix2Xd::Zero(2, vertices.cols());
 
     std::vector<Eigen::Triplet<double>> tripletList(3 * 3 * vDim * vDim * F.cols());
@@ -442,8 +443,6 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
         vert.col(2) = vertices.col(i3);
         Eigen::Vector3d r = restD.col(i);
 
-
-        Eigen::Matrix2Xd g;
         Eigen::MatrixXd  hess;
         generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projectedHessian(vert,
                                                                                                  scaled_Dirichlet_coef.col(i),
@@ -455,14 +454,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
                                                                                                  one_plus_two_alpha_lambda2,
                                                                                                  coeff_diag,
                                                                                                  coeff_off_diag,
-                                                                                                 g, hess);
-
-#pragma omp critical
-        {
-            grad.col(i1) += g.col(0);
-            grad.col(i2) += g.col(1);
-            grad.col(i3) += g.col(2);
-        }
+                                                                                                 gradList[i], hess);
 
         // update Hessian of free vertices
         int current_index = i * 3 * 3 * vDim * vDim;
@@ -482,7 +474,14 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
                 }
             }
         }
+    }
 
+    // get gradient
+    for (int i = 0; i < F.cols(); i++)
+    {
+        grad.col(F(0, i)) += gradList[i].col(0);
+        grad.col(F(1, i)) += gradList[i].col(1);
+        grad.col(F(2, i)) += gradList[i].col(2);
     }
 
     // add small positive values to the diagonal of Hessian
