@@ -1117,6 +1117,53 @@ int main(int argc, char const* argv[])
     data.set_record_flags(options.record);
     data.save_vert = options.save_vert;
 
+    //test
+    /*double energy1;
+    VectorXd energyList1;
+    VectorXd grad1(x.size());
+    SpMat mat1(x.size(), x.size());
+    energy1 = data.formulation.compute_energy_with_gradient_projectedHessian(x, energyList1, grad1, mat1);
+    double energy2;
+    VectorXd energyList2;
+    VectorXd grad2(x.size());
+    SpMat mat2(x.size(), x.size());
+    energy2 = data.formulation.compute_energy_with_gradient_projectedHessian(x, energyList2, grad2, mat2);
+    bool same_energy = true;
+    for (size_t i = 0; i < energyList1.size(); i++)
+    {
+        if (energyList1(i) != energyList2(i)) {
+            same_energy = false;
+            break;
+        }
+    }
+    std::cout << "same_energy: " << same_energy << std::endl;
+    bool same_grad = true;
+    for (size_t i = 0; i < grad1.size(); i++)
+    {
+        if (grad1(i) != grad2(i)) {
+            same_grad = false;
+            break;
+        }
+    }
+    std::cout << "same_grad: " << same_grad << std::endl;
+    bool same_Hess = true;
+    for (int k = 0; k < mat1.outerSize(); ++k) {
+        SpMat::InnerIterator it1(mat1, k);
+        SpMat::InnerIterator it2(mat2, k);
+        while (it1) {
+            if (it1.row() != it2.row() || it1.value() != it2.value()) {
+                same_Hess = false;
+                break;
+            }
+            ++it1;
+            ++it2;
+        }
+        if (!same_Hess) {
+            break;
+        }
+    }
+    std::cout << "same_Hess: " << same_Hess << std::endl;*/
+
 
     //projected newton
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
