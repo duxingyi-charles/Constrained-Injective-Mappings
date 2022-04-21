@@ -19,6 +19,29 @@
 using namespace Eigen;
 typedef Eigen::CholmodSupernodalLLT<SpMat> CholmodSolver;
 
+bool export_sparse_matrix(const char* filename, const SpMat& mat)
+{
+    std::ofstream out_file(filename);
+    if (!out_file.is_open()) {
+        std::cerr << "Failed to open " << filename << "!" << std::endl;
+        return false;
+    }
+
+    //precision of output
+    typedef std::numeric_limits< double > dbl;
+    out_file.precision(dbl::max_digits10);
+
+    out_file << mat.rows() << " " << mat.cols() << std::endl;
+    for (int k = 0; k < mat.outerSize(); ++k) {
+        for (SpMat::InnerIterator it(mat, k); it; ++it) {
+            out_file << it.row() << " " << k << " " << it.value() << std::endl;
+        }
+    }
+
+    out_file.close();
+    return true;
+}
+
 
 // solver options
 class SolverOptionManager
@@ -1038,6 +1061,7 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
         if (solver.info() != Success) {
             std::cout << "iter " << i << ": decomposition failed" << std::endl;
             data.stop_type = "solver.factorize fail";
+            //export_sparse_matrix("D:\\research\\arcOverlap\\debug\\Hess.txt", mat);
             return;
         }
         p = solver.solve(-grad);
@@ -1117,7 +1141,7 @@ int main(int argc, char const* argv[])
     data.set_record_flags(options.record);
     data.save_vert = options.save_vert;
 
-    //test
+    //test: consistency of different runs
     /*double energy1;
     VectorXd energyList1;
     VectorXd grad1(x.size());
@@ -1163,6 +1187,14 @@ int main(int argc, char const* argv[])
         }
     }
     std::cout << "same_Hess: " << same_Hess << std::endl;*/
+
+    // test: export Hessian matrix
+    /*double energy;
+    VectorXd energyList;
+    VectorXd grad(x.size());
+    SpMat Hess(x.size(), x.size());
+    energy = data.formulation.compute_energy_with_gradient_projectedHessian(x, energyList, grad, Hess);
+    export_sparse_matrix("D:\\research\\arcOverlap\\debug\\Hess.txt", Hess);*/
 
 
     //projected newton
