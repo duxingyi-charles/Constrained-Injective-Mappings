@@ -387,17 +387,29 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     double a11 = (coeff_diag + two_alpha_lambda1*s2*s2)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s2*s2)/energy_cube;
     double a22 = (coeff_diag + two_alpha_lambda1*s1*s1)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s1*s1)/energy_cube;
     double a12 = (coeff_off_diag_subtracted*I3 + one_plus_two_alpha_lambda2*I3*(one_plus_two_alpha_lambda2*I3*I3+two_alpha_lambda1*I2))/energy_cube-1;
-    Eigen::Matrix2d matA;
-    matA << a11, a12,
-            a12, a22;
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-    auto matA_eigenVals = eigenSolver.eigenvalues();
-    double eigen_value_scale1 = matA_eigenVals[0];
-    double eigen_value_scale2 = matA_eigenVals[1];
-    double beta = (eigen_value_scale1 - a22)/a12;
-    double norm_beta_1 = sqrt(1. + beta*beta);
-    Eigen::VectorXd eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
-    Eigen::VectorXd eigen_vec_scale2 = (vec_d1 - beta * vec_d2) / norm_beta_1;
+    double eigen_value_scale1;
+    double eigen_value_scale2;
+    Eigen::VectorXd eigen_vec_scale1;
+    Eigen::VectorXd eigen_vec_scale2;
+    if (a12 == 0) {
+        eigen_value_scale1 = a11;
+        eigen_value_scale2 = a22;
+        eigen_vec_scale1 = vec_d1;
+        eigen_vec_scale2 = vec_d2;
+    }
+    else {
+        Eigen::Matrix2d matA;
+        matA << a11, a12,
+                a12, a22;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+        auto matA_eigenVals = eigenSolver.eigenvalues();
+        eigen_value_scale1 = matA_eigenVals[0];
+        eigen_value_scale2 = matA_eigenVals[1];
+        double beta = (eigen_value_scale1 - a22) / a12;
+        double norm_beta_1 = sqrt(1. + beta * beta);
+        eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
+        eigen_vec_scale2 = (vec_d1 - beta * vec_d2) / norm_beta_1;
+    }
     // PSD f-Hessian
     Eigen::Matrix4d f_Hess;
     f_Hess.setZero();
@@ -580,17 +592,29 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
     double a22 = (coeff_diag + two_alpha_lambda1*s1*s1)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s1*s1)/energy_cube;
     double a12 = (coeff_off_diag*I3 + one_plus_two_alpha_lambda2*I3*(one_plus_two_alpha_lambda2*I3*I3+two_alpha_lambda1*I2))/energy_cube;
     //
-    Eigen::Matrix2d matA;
-    matA << a11, a12,
-            a12, a22;
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-    auto matA_eigenVals = eigenSolver.eigenvalues();
-    double eigen_value_scale1 = matA_eigenVals[0];
-    double eigen_value_scale2 = matA_eigenVals[1];
-    double beta = (eigen_value_scale1 - a22)/a12;
-    double norm_beta_1 = sqrt(1. + beta*beta);
-    Eigen::VectorXd eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
-    Eigen::VectorXd eigen_vec_scale2 = (vec_d1 - beta * vec_d2) / norm_beta_1;
+    double eigen_value_scale1;
+    double eigen_value_scale2;
+    Eigen::VectorXd eigen_vec_scale1;
+    Eigen::VectorXd eigen_vec_scale2;
+    if (a12 == 0) {
+        eigen_value_scale1 = a11;
+        eigen_value_scale2 = a22;
+        eigen_vec_scale1 = vec_d1;
+        eigen_vec_scale2 = vec_d2;
+    }
+    else {
+        Eigen::Matrix2d matA;
+        matA << a11, a12,
+                a12, a22;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+        auto matA_eigenVals = eigenSolver.eigenvalues();
+        eigen_value_scale1 = matA_eigenVals[0];
+        eigen_value_scale2 = matA_eigenVals[1];
+        double beta = (eigen_value_scale1 - a22) / a12;
+        double norm_beta_1 = sqrt(1. + beta * beta);
+        eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
+        eigen_vec_scale2 = (vec_d1 - beta * vec_d2) / norm_beta_1;
+    }
     // PSD f-Hessian
     Eigen::Matrix4d f_Hess;
     f_Hess.setZero();
