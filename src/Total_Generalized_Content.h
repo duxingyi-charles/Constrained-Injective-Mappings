@@ -29,6 +29,10 @@ public:
     double compute_total_generalized_content(const Eigen::Matrix2Xd &vertices,
                                                   Eigen::VectorXd &generalized_content_list) const;
 
+    // compute generalized negative content, record (generalized content - signed content) of each triangle
+    double compute_total_generalized_negative_content(const Eigen::Matrix2Xd &vertices,
+                                                      Eigen::VectorXd &generalized_neg_content_list) const;
+
     // compute total generalized content and its gradient
     double compute_total_generalized_content_with_gradient(const Eigen::Matrix2Xd &vertices,
                                                                 Eigen::Matrix2Xd &grad) const;
@@ -74,7 +78,20 @@ private:
     //  - vert: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_TriArea(
-            const Eigen::Matrix2Xd &vert,
+            const Eigen::Vector2d &v1,
+            const Eigen::Vector2d &v2,
+            const Eigen::Vector2d &v3,
+            const Eigen::Vector3d &Dirichlet_coef,
+            double scaled_squared_rest_area) const;
+
+    // compute generalized negative triangle area
+    // input:
+    //  - vert: three vertices
+    //  - r: squared edge lengths of aux triangle
+    double compute_generalized_negative_TriArea(
+            const Eigen::Vector2d &v1,
+            const Eigen::Vector2d &v2,
+            const Eigen::Vector2d &v3,
             const Eigen::Vector3d &Dirichlet_coef,
             double scaled_squared_rest_area) const;
 
@@ -110,7 +127,7 @@ private:
     //  - vert: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(
-            const Eigen::Matrix2Xd &vert,
+            const Eigen::Vector2d &v1, const Eigen::Vector2d &v2, const Eigen::Vector2d &v3,
             const Eigen::Vector3d &Dirichlet_coef,
             double scaled_squared_rest_area,
             double rest_area,

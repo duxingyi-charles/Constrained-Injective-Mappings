@@ -155,25 +155,12 @@ void sTGC_Formulation::update_V(const VectorXd &x) {
 double sTGC_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
-    // TGC
-    VectorXd generalized_content_list;
-    tgc.compute_total_generalized_content(V,generalized_content_list);
-
-    if (subtract_total_signed_area) {
-        // signed area
-        VectorXd signed_area_list;
-        compute_signed_tri_areas(V, F, signed_area_list);
-
-        // fill the energy decomposition into energy_list
-        energy_list.resize(generalized_content_list.size());
-        for (int i = 0; i < generalized_content_list.size(); ++i) {
-            energy_list(i) = generalized_content_list(i) - signed_area_list(i);
-        }
-    } else {
-        energy_list = generalized_content_list;
+    if (subtract_total_signed_area) { // sTGC
+        return tgc.compute_total_generalized_negative_content(V, energy_list);
     }
-
-    return energy_list.sum();
+    else { // TGC
+        return tgc.compute_total_generalized_content(V, energy_list);
+    }
 }
 
 double sTGC_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {

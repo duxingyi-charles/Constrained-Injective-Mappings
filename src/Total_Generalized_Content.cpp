@@ -105,23 +105,21 @@ double Total_Generalized_Content::compute_total_generalized_content(const Eigen:
 
     for (int i = 0; i < free_faceI.size(); ++i) {
         auto fi = free_faceI(i);
-        Eigen::Matrix2Xd vert(vDim, simplex_size);
-        vert.col(0) = vertices.col(F(0, fi));
-        vert.col(1) = vertices.col(F(1, fi));
-        vert.col(2) = vertices.col(F(2, fi));
 
-        energyList(fi) = compute_generalized_TriArea(vert, scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi));
+        energyList(fi) = compute_generalized_TriArea(vertices.col(F(0,fi)),
+                                                     vertices.col(F(1,fi)),
+                                                     vertices.col(F(2,fi)),
+                                                     scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi));
     }
 
     return energyList.sum();
 }
 
-double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Matrix2Xd &vert,
+double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Vector2d &v1,
+                                                              const Eigen::Vector2d &v2,
+                                                              const Eigen::Vector2d &v3,
                                                               const Eigen::Vector3d &Dirichlet_coef,
                                                               double scaled_squared_rest_area) const {
-    auto v1 = vert.col(0);
-    auto v2 = vert.col(1);
-    auto v3 = vert.col(2);
     auto e1 = v2 - v3;
     auto e2 = v3 - v1;
     auto e3 = v1 - v2;
@@ -134,24 +132,61 @@ double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Matri
     );
 }
 
+double Total_Generalized_Content::compute_generalized_negative_TriArea(const Eigen::Vector2d &v1,
+                                                              const Eigen::Vector2d &v2,
+                                                              const Eigen::Vector2d &v3,
+                                                              const Eigen::Vector3d &Dirichlet_coef,
+                                                              double scaled_squared_rest_area) const {
+    auto e1 = v2 - v3;
+    auto e2 = v3 - v1;
+    auto e3 = v1 - v2;
+
+    double area = compute_tri_signed_area(v1,v2,v3);
+
+    return sqrt(squared_targetA_scale_coeff*area*area + Dirichlet_coef(0) * e1.squaredNorm()
+                + Dirichlet_coef(1) * e2.squaredNorm() + Dirichlet_coef(2) * e3.squaredNorm()
+                + scaled_squared_rest_area
+    ) - area;
+}
+
 double Total_Generalized_Content::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices,
                                                                     Eigen::VectorXd &energyList) const {
     energyList = Eigen::VectorXd::Zero(F.cols());
     int vDim = 2;
     int simplex_size = 3; //triangle
 
+#pragma omp parallel
+#pragma omp for
     for (auto i = 0; i < free_faceI.size(); ++i) {
         auto fi = free_faceI(i);
-        Eigen::Matrix2Xd vert(vDim, simplex_size);
-        vert.col(0) = vertices.col(F(0, fi));
-        vert.col(1) = vertices.col(F(1, fi));
-        vert.col(2) = vertices.col(F(2, fi));
 
-        energyList(fi) = compute_generalized_TriArea(
-                vert, scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi));
+        energyList(fi) = compute_generalized_TriArea(vertices.col(F(0, fi)),
+                                                     vertices.col(F(1, fi)),
+                                                     vertices.col(F(2, fi)),
+                scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi));
     }
 
     return energyList.sum();
+}
+
+double Total_Generalized_Content::compute_total_generalized_negative_content(const Eigen::Matrix2Xd &vertices,
+                                                                             Eigen::VectorXd &generalized_neg_content_list) const {
+    generalized_neg_content_list = Eigen::VectorXd::Zero(F.cols());
+    int vDim = 2;
+    int simplex_size = 3; //triangle
+
+#pragma omp parallel
+#pragma omp for
+    for (auto i = 0; i < free_faceI.size(); ++i) {
+        auto fi = free_faceI(i);
+
+        generalized_neg_content_list(fi) = compute_generalized_negative_TriArea(vertices.col(F(0, fi)),
+                                                     vertices.col(F(1, fi)),
+                                                     vertices.col(F(2, fi)),
+                                                     scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi));
+    }
+
+    return generalized_neg_content_list.sum();
 }
 
 double Total_Generalized_Content::compute_total_generalized_content_with_gradient(const Eigen::Matrix2Xd &vertices,
@@ -239,19 +274,20 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 #pragma omp parallel
 #pragma omp for
     for (auto i = 0; i < F.cols(); ++i) {
-        int i1, i2, i3;
-        i1 = F(0, i);
-        i2 = F(1, i);
-        i3 = F(2, i);
+//        int i1, i2, i3;
+//        i1 = F(0, i);
+//        i2 = F(1, i);
+//        i3 = F(2, i);
 
-        Eigen::MatrixXd vert(vDim, 3);
-        vert.col(0) = vertices.col(i1);
-        vert.col(1) = vertices.col(i2);
-        vert.col(2) = vertices.col(i3);
-        Eigen::Vector3d r = restD.col(i);
+//        Eigen::MatrixXd vert(vDim, 3);
+//        vert.col(0) = vertices.col(i1);
+//        vert.col(1) = vertices.col(i2);
+//        vert.col(2) = vertices.col(i3);
+//        Eigen::Vector3d r = restD.col(i);
 
         Eigen::MatrixXd  hess;
-        generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(vert,
+        generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(
+                vertices.col(F(0,i)), vertices.col(F(1,i)), vertices.col(F(2,i)),
                                                                                                  scaled_Dirichlet_coef.col(i),
                                                                                                  scaled_squared_restA(i),
                                                                                                  restA(i),
@@ -305,7 +341,9 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 }
 
 double
-Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(const Eigen::Matrix2Xd &vert,
+Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(const Eigen::Vector2d &v1,
+                                                                                                  const Eigen::Vector2d &v2,
+                                                                                                  const Eigen::Vector2d &v3,
                                                                                       const Eigen::Vector3d &Dirichlet_coef,
                                                                                       double scaled_squared_rest_area,
                                                                                       double rest_area,
@@ -317,9 +355,6 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
                                                                                       double coeff_off_diag_subtracted,
                                                                                       Eigen::Matrix2Xd &grad,
                                                                                       Eigen::MatrixXd &Hess) const {
-    auto v1 = vert.col(0);
-    auto v2 = vert.col(1);
-    auto v3 = vert.col(2);
     auto e1 = v3 - v2;
     auto e2 = v1 - v3;
     auto e3 = v2 - v1;
@@ -341,11 +376,13 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     //
     double f1 = (0.5+param_alpha*param_lambda2) * area;
 
+
     auto d1e1 = d1 * e1;
     auto d2e2 = d2 * e2;
     auto d3e3 = d3 * e3;
 
-    grad.resize(vert.rows(), vert.cols());
+//    grad.resize(vert.rows(), vert.cols());
+    grad.resize(2,3);
     grad.col(0) = f1 * h1 + (d2e2 - d3e3);
     grad.col(1) = f1 * h2 + (d3e3 - d1e1);
     grad.col(2) = f1 * h3 + (d1e1 - d2e2);
@@ -398,13 +435,15 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
         eigen_vec_scale2 = vec_d2;
     }
     else {
-        Eigen::Matrix2d matA;
-        matA << a11, a12,
-                a12, a22;
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-        auto matA_eigenVals = eigenSolver.eigenvalues();
-        eigen_value_scale1 = matA_eigenVals[0];
-        eigen_value_scale2 = matA_eigenVals[1];
+//        Eigen::Matrix2d matA;
+//        matA << a11, a12,
+//                a12, a22;
+//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+//        auto matA_eigenVals = eigenSolver.eigenvalues();
+//        eigen_value_scale1 = matA_eigenVals[0];
+//        eigen_value_scale2 = matA_eigenVals[1];
+        eigen_value_scale1 = (a11 + a12 + sqrt((a11-a12)*(a11-a12)+4*a12*a12))/2;
+        eigen_value_scale2 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
         double beta = (eigen_value_scale1 - a22) / a12;
         double norm_beta_1 = sqrt(1. + beta * beta);
         eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
