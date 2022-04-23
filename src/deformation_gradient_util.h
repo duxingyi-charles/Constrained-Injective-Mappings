@@ -29,6 +29,10 @@ void compute_edge_matrix(const Eigen::Vector3d& v1,
 void vectorize(const Eigen::MatrixXd& A,
                Eigen::VectorXd& vecA);
 
+// vectorize a 2x2 matrix
+void vectorize2x2(const Eigen::Matrix2d& A,
+                  Eigen::Vector4d& vecA);
+
 // compute flattened 4th-order tensor pFpx for a triangle
 // input: inverse of auxiliary triangle's edge matrix
 // output: derivative of deformation gradient w.r.t. target vertices,

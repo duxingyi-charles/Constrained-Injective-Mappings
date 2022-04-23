@@ -38,6 +38,14 @@ void vectorize(const Eigen::MatrixXd &A, Eigen::VectorXd &vecA) {
     }
 }
 
+void vectorize2x2(const Eigen::Matrix2d &A, Eigen::Vector4d &vecA) {
+    vecA[0] = A(0,0);
+    vecA[1] = A(1,0);
+    vecA[2] = A(0,1);
+    vecA[3] = A(1,1);
+}
+
+
 void compute_flatten_pFpx(const Eigen::Matrix2d &invEdgeMat,
                           Eigen::MatrixXd& pFpx) {
     double a = invEdgeMat(0,0);
