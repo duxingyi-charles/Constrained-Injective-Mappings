@@ -100,9 +100,11 @@ void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices,
 
 double Total_Generalized_Content::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices) const {
     Eigen::VectorXd energyList = Eigen::VectorXd::Zero(F.cols());
-    int vDim = 2;
-    int simplex_size = 3; //triangle
+//    int vDim = 2;
+//    int simplex_size = 3; //triangle
 
+#pragma omp parallel
+#pragma omp for
     for (int i = 0; i < free_faceI.size(); ++i) {
         auto fi = free_faceI(i);
 
@@ -120,14 +122,14 @@ double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Vecto
                                                               const Eigen::Vector2d &v3,
                                                               const Eigen::Vector3d &Dirichlet_coef,
                                                               double scaled_squared_rest_area) const {
-    auto e1 = v2 - v3;
-    auto e2 = v3 - v1;
-    auto e3 = v1 - v2;
+//    auto e1 = v2 - v3;
+//    auto e2 = v3 - v1;
+//    auto e3 = v1 - v2;
 
     double area = compute_tri_signed_area(v1,v2,v3);
 
-    return sqrt(squared_targetA_scale_coeff*area*area + Dirichlet_coef(0) * e1.squaredNorm()
-                + Dirichlet_coef(1) * e2.squaredNorm() + Dirichlet_coef(2) * e3.squaredNorm()
+    return sqrt(squared_targetA_scale_coeff*area*area + Dirichlet_coef(0) * (v2-v3).squaredNorm()
+                + Dirichlet_coef(1) * (v3-v1).squaredNorm() + Dirichlet_coef(2) * (v1-v2).squaredNorm()
                 + scaled_squared_rest_area
     );
 }
@@ -137,14 +139,14 @@ double Total_Generalized_Content::compute_generalized_negative_TriArea(const Eig
                                                               const Eigen::Vector2d &v3,
                                                               const Eigen::Vector3d &Dirichlet_coef,
                                                               double scaled_squared_rest_area) const {
-    auto e1 = v2 - v3;
-    auto e2 = v3 - v1;
-    auto e3 = v1 - v2;
+//    auto e1 = v2 - v3;
+//    auto e2 = v3 - v1;
+//    auto e3 = v1 - v2;
 
     double area = compute_tri_signed_area(v1,v2,v3);
 
-    return sqrt(squared_targetA_scale_coeff*area*area + Dirichlet_coef(0) * e1.squaredNorm()
-                + Dirichlet_coef(1) * e2.squaredNorm() + Dirichlet_coef(2) * e3.squaredNorm()
+    return sqrt(squared_targetA_scale_coeff*area*area + Dirichlet_coef(0) * (v2-v3).squaredNorm()
+                + Dirichlet_coef(1) * (v3-v1).squaredNorm() + Dirichlet_coef(2) * (v1-v2).squaredNorm()
                 + scaled_squared_rest_area
     ) - area;
 }
@@ -152,8 +154,8 @@ double Total_Generalized_Content::compute_generalized_negative_TriArea(const Eig
 double Total_Generalized_Content::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices,
                                                                     Eigen::VectorXd &energyList) const {
     energyList = Eigen::VectorXd::Zero(F.cols());
-    int vDim = 2;
-    int simplex_size = 3; //triangle
+//    int vDim = 2;
+//    int simplex_size = 3; //triangle
 
 #pragma omp parallel
 #pragma omp for
@@ -172,8 +174,8 @@ double Total_Generalized_Content::compute_total_generalized_content(const Eigen:
 double Total_Generalized_Content::compute_total_generalized_negative_content(const Eigen::Matrix2Xd &vertices,
                                                                              Eigen::VectorXd &generalized_neg_content_list) const {
     generalized_neg_content_list = Eigen::VectorXd::Zero(F.cols());
-    int vDim = 2;
-    int simplex_size = 3; //triangle
+//    int vDim = 2;
+//    int simplex_size = 3; //triangle
 
 #pragma omp parallel
 #pragma omp for
@@ -191,44 +193,52 @@ double Total_Generalized_Content::compute_total_generalized_negative_content(con
 
 double Total_Generalized_Content::compute_total_generalized_content_with_gradient(const Eigen::Matrix2Xd &vertices,
                                                                                   Eigen::Matrix2Xd &grad) const {
-    int vDim = 2;
-    double energy = 0.0;
-    grad = Eigen::Matrix2Xd::Zero(2, vertices.cols());
+//    int vDim = 2;
+//    double energy = 0.0;
+    Eigen::VectorXd energyList;
+    energyList.resize(free_faceI.size());
+    std::vector<Eigen::Matrix2Xd> gradList(free_faceI.size());
 
+#pragma omp parallel
+#pragma omp for
     for (auto i = 0; i < free_faceI.size(); ++i) {
         auto fi = free_faceI(i);
-        int i1, i2, i3;
-        i1 = F(0, fi);
-        i2 = F(1, fi);
-        i3 = F(2, fi);
 
-        Eigen::MatrixXd vert(vDim, 3);
-        vert.col(0) = vertices.col(i1);
-        vert.col(1) = vertices.col(i2);
-        vert.col(2) = vertices.col(i3);
+//        Eigen::MatrixXd vert(vDim, 3);
+//        vert.col(0) = vertices.col(i1);
+//        vert.col(1) = vertices.col(i2);
+//        vert.col(2) = vertices.col(i3);
 
-        Eigen::Matrix2Xd g;
-        energy += compute_generalized_TriArea_with_gradient(
-                vert,scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi),g);
-
-        grad.col(i1) += g.col(0);
-        grad.col(i2) += g.col(1);
-        grad.col(i3) += g.col(2);
+//        Eigen::Matrix2Xd g;
+        energyList(i) = compute_generalized_TriArea_with_gradient(vertices.col(F(0, fi)),
+                                                            vertices.col(F(1, fi)),
+                vertices.col(F(2, fi)),
+                scaled_Dirichlet_coef.col(fi),scaled_squared_restA(fi),
+                gradList[i]);
     }
 
-    return energy;
+    // accumulate gradient
+    grad = Eigen::Matrix2Xd::Zero(2, vertices.cols());
+    for (auto i = 0; i < free_faceI.size(); ++i) {
+        auto fi = free_faceI(i);
+
+        grad.col(F(0, fi)) += gradList[i].col(0);
+        grad.col(F(1, fi)) += gradList[i].col(1);
+        grad.col(F(2, fi)) += gradList[i].col(2);
+    }
+
+    return energyList.sum();
 }
 
-double Total_Generalized_Content::compute_generalized_TriArea_with_gradient(const Eigen::Matrix2Xd &vert,
+double Total_Generalized_Content::compute_generalized_TriArea_with_gradient(const Eigen::Vector2d &v1,
+                                                                            const Eigen::Vector2d &v2,
+                                                                            const Eigen::Vector2d &v3,
                                                                             const Eigen::Vector3d &Dirichlet_coef,
                                                                             double scaled_squared_rest_area,
                                                                             Eigen::Matrix2Xd &grad) const {
-    auto v1 = vert.col(0);
-    auto v2 = vert.col(1);
-    auto v3 = vert.col(2);
-    auto e1 = v3 - v2;
-    auto e2 = v1 - v3;
-    auto e3 = v2 - v1;
+    Eigen::Vector2d e1 = v3 - v2;
+    Eigen::Vector2d e2 = v1 - v3;
+    Eigen::Vector2d e3 = v2 - v1;
 
     double d1 = Dirichlet_coef(0);
     double d2 = Dirichlet_coef(1);
@@ -240,21 +250,27 @@ double Total_Generalized_Content::compute_generalized_TriArea_with_gradient(cons
                          + scaled_squared_rest_area);
 
     // partial(2*area)/partial(v1,v2,v3)
-    auto h1 = rotate_90deg(e1);
-    auto h2 = rotate_90deg(e2);
-    auto h3 = rotate_90deg(e3);
+//    auto h1 = rotate_90deg(e1);
+//    auto h2 = rotate_90deg(e2);
+//    auto h3 = rotate_90deg(e3);
 
     //
-    double f1 = (0.5+param_alpha*param_lambda2) * area;
+//    double f1 = (0.5+param_alpha*param_lambda2) * area;
+    double f1 = one_plus_two_alpha_lambda2 * area /2;
 
-    auto d1e1 = d1 * e1;
-    auto d2e2 = d2 * e2;
-    auto d3e3 = d3 * e3;
+//    auto d1e1 = d1 * e1;
+//    auto d2e2 = d2 * e2;
+//    auto d3e3 = d3 * e3;
 
-    grad.resize(vert.rows(), vert.cols());
-    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
-    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
-    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+//    grad.resize(vert.rows(), vert.cols());
+    grad.resize(2, 3);
+//    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
+//    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
+//    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+
+    grad.col(0) = d2 * e2 - d3 * e3 + f1 * rotate_90deg(e1);
+    grad.col(1) = d3 * e3 - d1 * e1 + f1 * rotate_90deg(e2);
+    grad.col(2) = d1 * e1 - d2 * e2 + f1 * rotate_90deg(e3);
 
     grad /= energy;
 
@@ -355,9 +371,9 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
                                                                                       double coeff_off_diag_subtracted,
                                                                                       Eigen::Matrix2Xd &grad,
                                                                                       Eigen::MatrixXd &Hess) const {
-    auto e1 = v3 - v2;
-    auto e2 = v1 - v3;
-    auto e3 = v2 - v1;
+    Eigen::Vector2d e1 = v3 - v2;
+    Eigen::Vector2d e2 = v1 - v3;
+    Eigen::Vector2d e3 = v2 - v1;
 
     double d1 = Dirichlet_coef(0);
     double d2 = Dirichlet_coef(1);
@@ -367,25 +383,38 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     double energy = sqrt(squared_targetA_scale_coeff*area*area + d1 * e1.squaredNorm()
                          + d2 * e2.squaredNorm() + d3 * e3.squaredNorm()
                          + scaled_squared_rest_area);
+//    double energy = sqrt(squared_targetA_scale_coeff*area*area + d1 * (v3-v2).squaredNorm()
+//                         + d2 * (v1-v3).squaredNorm() + d3 * (v2-v1).squaredNorm()
+//                         + scaled_squared_rest_area);
+
 
     // partial(2*area)/partial(v1,v2,v3)
-    auto h1 = rotate_90deg(e1);
-    auto h2 = rotate_90deg(e2);
-    auto h3 = rotate_90deg(e3);
+//    auto h1 = rotate_90deg(e1);
+//    auto h2 = rotate_90deg(e2);
+//    auto h3 = rotate_90deg(e3);
 
     //
-    double f1 = (0.5+param_alpha*param_lambda2) * area;
+//    double f1 = (0.5+param_alpha*param_lambda2) * area;
+    double f1 = one_plus_two_alpha_lambda2 * area / 2;
 
 
-    auto d1e1 = d1 * e1;
-    auto d2e2 = d2 * e2;
-    auto d3e3 = d3 * e3;
+//    auto d1e1 = d1 * e1;
+//    auto d2e2 = d2 * e2;
+//    auto d3e3 = d3 * e3;
 
 //    grad.resize(vert.rows(), vert.cols());
     grad.resize(2,3);
-    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
-    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
-    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+//    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
+//    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
+//    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+
+    //    auto e1 = v3 - v2;
+//    auto e2 = v1 - v3;
+//    auto e3 = v2 - v1;
+
+    grad.col(0) = d2 * e2 - d3 * e3 + f1 * rotate_90deg(e1);
+    grad.col(1) = d3 * e3 - d1 * e1 + f1 * rotate_90deg(e2);
+    grad.col(2) = d1 * e1 - d2 * e2 + f1 * rotate_90deg(e3);
 
     grad /= energy;
 
@@ -393,32 +422,33 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     //
     Eigen::Matrix2d target_edge_matrix;
     compute_edge_matrix(v1, v2, v3, target_edge_matrix);
-    Eigen::Matrix2d deformation_gradient = target_edge_matrix * rest_inverse_EdgeMat;
+//    Eigen::Matrix2d deformation_gradient = target_edge_matrix * rest_inverse_EdgeMat;
     Eigen::Matrix2d U, V;
     Eigen::Vector2d singular_values;
-    compute_SVD(deformation_gradient, U, singular_values, V);
+//    compute_SVD(deformation_gradient, U, singular_values, V);
+    compute_SVD(target_edge_matrix * rest_inverse_EdgeMat, U, singular_values, V);
     double s1 = singular_values[0];
     double s2 = singular_values[1];
     // S-centric invariants
-    double I1 = s1 + s2;
+//    double I1 = s1 + s2;
     double I2 = s1*s1 + s2*s2;
     double I3 = s1*s2;
     // Analytic Eigensystem of f-Hessian
     double energy_density = energy / rest_area;
     //// twist
     double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy_density - 1;
-    Eigen::VectorXd eigen_vec_twist;
-    vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
+    Eigen::Vector4d eigen_vec_twist;
+    vectorize2x2((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_twist);
     //// flip
     double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy_density + 1;
-    Eigen::VectorXd eigen_vec_flip;
-    vectorize((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
+    Eigen::Vector4d eigen_vec_flip;
+    vectorize2x2((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_flip);
     //// scale
-    Eigen::VectorXd vec_d1, vec_d2;
-    vectorize(U.col(0) * V.col(0).transpose(), vec_d1);
-    vectorize(U.col(1) * V.col(1).transpose(), vec_d2);
+    Eigen::Vector4d vec_d1, vec_d2;
+    vectorize2x2(U.col(0) * V.col(0).transpose(), vec_d1);
+    vectorize2x2(U.col(1) * V.col(1).transpose(), vec_d2);
 
     double energy_cube = energy_density * energy_density * energy_density;
     double a11 = (coeff_diag + two_alpha_lambda1*s2*s2)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s2*s2)/energy_cube;
@@ -426,8 +456,8 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     double a12 = (coeff_off_diag_subtracted*I3 + one_plus_two_alpha_lambda2*I3*(one_plus_two_alpha_lambda2*I3*I3+two_alpha_lambda1*I2))/energy_cube-1;
     double eigen_value_scale1;
     double eigen_value_scale2;
-    Eigen::VectorXd eigen_vec_scale1;
-    Eigen::VectorXd eigen_vec_scale2;
+    Eigen::Vector4d eigen_vec_scale1;
+    Eigen::Vector4d eigen_vec_scale2;
     if (a12 == 0) {
         eigen_value_scale1 = a11;
         eigen_value_scale2 = a22;
@@ -442,8 +472,8 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
 //        auto matA_eigenVals = eigenSolver.eigenvalues();
 //        eigen_value_scale1 = matA_eigenVals[0];
 //        eigen_value_scale2 = matA_eigenVals[1];
-        eigen_value_scale1 = (a11 + a12 + sqrt((a11-a12)*(a11-a12)+4*a12*a12))/2;
-        eigen_value_scale2 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
         double beta = (eigen_value_scale1 - a22) / a12;
         double norm_beta_1 = sqrt(1. + beta * beta);
         eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
@@ -483,19 +513,21 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 #pragma omp parallel
 #pragma omp for
     for (auto i = 0; i < F.cols(); ++i) {
-        int i1, i2, i3;
-        i1 = F(0, i);
-        i2 = F(1, i);
-        i3 = F(2, i);
-
-        Eigen::MatrixXd vert(vDim, 3);
-        vert.col(0) = vertices.col(i1);
-        vert.col(1) = vertices.col(i2);
-        vert.col(2) = vertices.col(i3);
-        Eigen::Vector3d r = restD.col(i);
+//        int i1, i2, i3;
+//        i1 = F(0, i);
+//        i2 = F(1, i);
+//        i3 = F(2, i);
+//
+//        Eigen::MatrixXd vert(vDim, 3);
+//        vert.col(0) = vertices.col(i1);
+//        vert.col(1) = vertices.col(i2);
+//        vert.col(2) = vertices.col(i3);
+//        Eigen::Vector3d r = restD.col(i);
 
         Eigen::MatrixXd  hess;
-        generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projectedHessian(vert,
+        generalized_content_list(i) = compute_generalized_TriArea_with_gradient_projectedHessian(vertices.col(F(0,i)),
+                                                                                                 vertices.col(F(1,i)),
+                                                                                                 vertices.col(F(2,i)),
                                                                                                  scaled_Dirichlet_coef.col(i),
                                                                                                  scaled_squared_restA(i),
                                                                                                  restA(i),
@@ -548,7 +580,9 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 }
 
 double
-Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHessian(const Eigen::Matrix2Xd &vert,
+Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHessian(const Eigen::Vector2d &v1,
+                                                                                      const Eigen::Vector2d &v2,
+                                                                                      const Eigen::Vector2d &v3,
                                                                                       const Eigen::Vector3d &Dirichlet_coef,
                                                                                       double scaled_squared_rest_area,
                                                                                       double rest_area,
@@ -560,9 +594,6 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
                                                                                       double coeff_off_diag,
                                                                                       Eigen::Matrix2Xd &grad,
                                                                                       Eigen::MatrixXd &Hess) const {
-    auto v1 = vert.col(0);
-    auto v2 = vert.col(1);
-    auto v3 = vert.col(2);
     auto e1 = v3 - v2;
     auto e2 = v1 - v3;
     auto e3 = v2 - v1;
@@ -577,21 +608,27 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
                          + scaled_squared_rest_area);
 
     // partial(2*area)/partial(v1,v2,v3)
-    auto h1 = rotate_90deg(e1);
-    auto h2 = rotate_90deg(e2);
-    auto h3 = rotate_90deg(e3);
+//    auto h1 = rotate_90deg(e1);
+//    auto h2 = rotate_90deg(e2);
+//    auto h3 = rotate_90deg(e3);
 
     //
-    double f1 = (0.5+param_alpha*param_lambda2) * area;
+//    double f1 = (0.5+param_alpha*param_lambda2) * area;
+    double f1 = one_plus_two_alpha_lambda2 * area /2;
 
-    auto d1e1 = d1 * e1;
-    auto d2e2 = d2 * e2;
-    auto d3e3 = d3 * e3;
+//    auto d1e1 = d1 * e1;
+//    auto d2e2 = d2 * e2;
+//    auto d3e3 = d3 * e3;
 
-    grad.resize(vert.rows(), vert.cols());
-    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
-    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
-    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+//    grad.resize(vert.rows(), vert.cols());
+    grad.resize(2, 3);
+//    grad.col(0) = f1 * h1 + (d2e2 - d3e3);
+//    grad.col(1) = f1 * h2 + (d3e3 - d1e1);
+//    grad.col(2) = f1 * h3 + (d1e1 - d2e2);
+
+    grad.col(0) = d2 * e2 - d3 * e3 + f1 * rotate_90deg(e1);
+    grad.col(1) = d3 * e3 - d1 * e1 + f1 * rotate_90deg(e2);
+    grad.col(2) = d1 * e1 - d2 * e2 + f1 * rotate_90deg(e3);
 
     grad /= energy;
 
@@ -606,25 +643,25 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
     double s1 = singular_values[0];
     double s2 = singular_values[1];
     // S-centric invariants
-    double I1 = s1 + s2;
+//    double I1 = s1 + s2;
     double I2 = s1*s1 + s2*s2;
     double I3 = s1*s2;
     // Analytic Eigensystem of f-Hessian
     double energy_density = energy / rest_area;
     //// twist
     double eigen_value_twist = (two_alpha_lambda1 + I3 * one_plus_two_alpha_lambda2)/energy_density;
-    Eigen::VectorXd eigen_vec_twist;
-    vectorize((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
+    Eigen::Vector4d eigen_vec_twist;
+    vectorize2x2((U.col(1) * V.col(0).transpose() - U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_twist);
     //// flip
     double eigen_value_flip = (two_alpha_lambda1 - I3 * one_plus_two_alpha_lambda2)/energy_density;
-    Eigen::VectorXd eigen_vec_flip;
-    vectorize((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
+    Eigen::Vector4d eigen_vec_flip;
+    vectorize2x2((U.col(1) * V.col(0).transpose() + U.col(0) * V.col(1).transpose())/sqrt(2.),
               eigen_vec_flip);
     //// scale
-    Eigen::VectorXd vec_d1, vec_d2;
-    vectorize(U.col(0) * V.col(0).transpose(), vec_d1);
-    vectorize(U.col(1) * V.col(1).transpose(), vec_d2);
+    Eigen::Vector4d vec_d1, vec_d2;
+    vectorize2x2(U.col(0) * V.col(0).transpose(), vec_d1);
+    vectorize2x2(U.col(1) * V.col(1).transpose(), vec_d2);
     double energy_cube = energy_density * energy_density * energy_density;
     //
     double a11 = (coeff_diag + two_alpha_lambda1*s2*s2)*(two_alpha_lambda1+one_plus_two_alpha_lambda2*s2*s2)/energy_cube;
@@ -633,8 +670,8 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
     //
     double eigen_value_scale1;
     double eigen_value_scale2;
-    Eigen::VectorXd eigen_vec_scale1;
-    Eigen::VectorXd eigen_vec_scale2;
+    Eigen::Vector4d eigen_vec_scale1;
+    Eigen::Vector4d eigen_vec_scale2;
     if (a12 == 0) {
         eigen_value_scale1 = a11;
         eigen_value_scale2 = a22;
@@ -642,13 +679,15 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
         eigen_vec_scale2 = vec_d2;
     }
     else {
-        Eigen::Matrix2d matA;
-        matA << a11, a12,
-                a12, a22;
-        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-        auto matA_eigenVals = eigenSolver.eigenvalues();
-        eigen_value_scale1 = matA_eigenVals[0];
-        eigen_value_scale2 = matA_eigenVals[1];
+//        Eigen::Matrix2d matA;
+//        matA << a11, a12,
+//                a12, a22;
+//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+//        auto matA_eigenVals = eigenSolver.eigenvalues();
+//        eigen_value_scale1 = matA_eigenVals[0];
+//        eigen_value_scale2 = matA_eigenVals[1];
+        eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
         double beta = (eigen_value_scale1 - a22) / a12;
         double norm_beta_1 = sqrt(1. + beta * beta);
         eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;

@@ -75,7 +75,7 @@ private:
 
     // compute generalized triangle area
     // input:
-    //  - vert: three vertices
+    //  - v1, v2, v3: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_TriArea(
             const Eigen::Vector2d &v1,
@@ -86,7 +86,7 @@ private:
 
     // compute generalized negative triangle area
     // input:
-    //  - vert: three vertices
+    //  - v1, v2, v3: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_negative_TriArea(
             const Eigen::Vector2d &v1,
@@ -97,10 +97,12 @@ private:
 
     // compute generalized triangle area with gradient wrt. vert
     // input:
-    //  - vert: three vertices
+    //  - v1, v2, v3: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_TriArea_with_gradient(
-            const Eigen::Matrix2Xd &vert,
+            const Eigen::Vector2d &v1,
+            const Eigen::Vector2d &v2,
+            const Eigen::Vector2d &v3,
             const Eigen::Vector3d &Dirichlet_coef,
             double scaled_squared_rest_area,
             Eigen::Matrix2Xd &grad) const;
@@ -110,7 +112,7 @@ private:
     //  - vert: three vertices
     //  - r: squared edge lengths of aux triangle
     double compute_generalized_TriArea_with_gradient_projectedHessian(
-            const Eigen::Matrix2Xd &vert,
+            const Eigen::Vector2d &v1, const Eigen::Vector2d &v2, const Eigen::Vector2d &v3,
             const Eigen::Vector3d &Dirichlet_coef,
             double scaled_squared_rest_area,
             double rest_area,
