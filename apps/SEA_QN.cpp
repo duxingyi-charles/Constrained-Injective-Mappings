@@ -948,7 +948,7 @@ int main(int argc, char const* argv[])
 //        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
         std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
         // timings
-        print_timings();
+//        print_timings();
     }
     catch (std::exception& e) {
         std::cout << "nlopt failed: " << e.what() << std::endl;
