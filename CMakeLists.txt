@@ -76,6 +76,9 @@ target_link_libraries(sTGC_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 add_executable(sTGC_3D_QN "apps/sTGC_3D_QN.cpp")
 target_link_libraries(sTGC_3D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
+add_executable(SEA_QN "apps/SEA_QN.cpp")
+target_link_libraries(SEA_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+
 # suitesparse
 
 set(SUITESPARSE_INCLUDE_DIR /usr/local/include CACHE PATH "suitesparse include directory")
