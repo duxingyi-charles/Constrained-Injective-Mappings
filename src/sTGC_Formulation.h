@@ -16,7 +16,8 @@ public:
                          Matrix3Xi faces,
                          const VectorXi& handles, const std::string& form,
                          double alpha, double lambda1, double lambda2, double k,
-                         bool scale_rest_mesh, bool subtract_total_signed_area);
+                         bool scale_rest_mesh, bool subtract_total_signed_area,
+                         double aspect_ratio_threshold);
 
     ~sTGC_Formulation() = default;
 

@@ -7,7 +7,8 @@
 
 sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                    const VectorXi &handles, const std::string &form, double alpha, double lambda1,
-                                   double lambda2, double k, bool scale_rest_mesh, bool subtract_total_signed_area) :
+                                   double lambda2, double k, bool scale_rest_mesh, bool subtract_total_signed_area,
+                                   double aspect_ratio_threshold) :
         F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area),
         skip_non_free_triangles(false)
 {
@@ -94,7 +95,7 @@ sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init
 
     // initialize TGC
     scaled_rest_vertices = rest_scale * rest_vertices;
-    tgc.initialize(scaled_rest_vertices, F, form, alpha, lambda1, lambda2, k);
+    tgc.initialize(scaled_rest_vertices, F, form, alpha, lambda1, lambda2, k, aspect_ratio_threshold);
 //    std::cout << "free_faceI: " << std::endl;
 //    std::cout << free_faceI << std::endl;
     if (skip_non_free_triangles) {
