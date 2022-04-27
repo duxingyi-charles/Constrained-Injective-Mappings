@@ -18,7 +18,8 @@ public:
     // initialize from rest mesh and parameters: get ready for computing TGC energy and derivatives
     // need to satisfy lambda1 + k * lambda2 = 1/2
     void initialize(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix3Xi &faces,
-                    const std::string &form, double alpha, double lambda1, double lambda2, double k);
+                    const std::string &form, double alpha, double lambda1, double lambda2, double k,
+                    double aspect_ratio_threshold);
 
     ~Total_Generalized_Content() = default;
 

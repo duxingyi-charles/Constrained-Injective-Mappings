@@ -7,10 +7,12 @@
 #include <Eigen/Eigenvalues>
 #include "deformation_gradient_util.h"
 
+#include <iostream>
+
 
 void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix3Xi &faces,
                                            const std::string &form, double alpha, double lambda1, double lambda2,
-                                           double k) {
+                                           double k, double aspect_ratio_threshold) {
     //
     F = faces;
     param_alpha = alpha;
@@ -35,7 +37,7 @@ void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices,
         // we assume the auxiliary triangles are equilateral triangles
         // whose total measure is the same as the input rest mesh.
         double regular_tri_area = total_rest_area/F.cols();
-        double regular_tri_squared_length = 4 * regular_tri_area / sqrt(3);
+        double regular_tri_squared_length = 4 * regular_tri_area / sqrt(3.0);
         restA = Eigen::VectorXd::Constant(F.cols(), regular_tri_area);
         restD = Eigen::MatrixXd::Constant(3,F.cols(),regular_tri_squared_length);
         // compute inverse edge matrix and pFpx
@@ -51,14 +53,41 @@ void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices,
         rest_invEdgeMat.resize(F.cols(), invEdgeMat);
         pFpx_list.resize(F.cols(), pFpx);
     } else { // harmonic form
+        // compute aspect ratios of rest triangles
+//        std::cout << "aspect ratio threshold = " << aspect_ratio_threshold << std::endl;
+        std::vector<bool> is_sliver_triangle(F.cols(), false);
+        int num_sliver_triangle = 0;
+        if (aspect_ratio_threshold > 1) { // perform aspect ratio filter on rest triangles
+            for (int i = 0; i < F.cols(); ++i) {
+                double aspect_ratio = compute_tri_aspect_ratio(restD(0,i), restD(1,i), restD(2,i));
+                if (aspect_ratio > aspect_ratio_threshold) {
+                    is_sliver_triangle[i] = true;
+                    num_sliver_triangle += 1;
+                    // replace the sliver with an equilateral triangle with the same area
+                    restD(0,i) = restD(1,i) = restD(2,i) = 4 * restA(i) / sqrt(3.0);
+                }
+            }
+        }
+        if (num_sliver_triangle > 0) {
+            std::cout << num_sliver_triangle << " sliver triangles." << std::endl;
+        }
+        //
         rest_invEdgeMat.reserve(F.cols());
         Eigen::Matrix2d rest_edge_mat;
         for (int i = 0; i < F.cols(); ++i) {
             rest_invEdgeMat.emplace_back();
-            compute_edge_matrix(rest_vertices.col(F(0,i)),
-                                rest_vertices.col(F(1,i)),
-                                rest_vertices.col(F(2,i)),
-                                rest_edge_mat);
+            if (is_sliver_triangle[i]) {
+                Eigen::Vector2d v1(0,0);
+                double regular_tri_edge_length = sqrt(4 * restA(i) / sqrt(3.0));
+                Eigen::Vector2d v2(regular_tri_edge_length, 0);
+                Eigen::Vector2d v3(regular_tri_edge_length/2, sqrt(3.)*regular_tri_edge_length/2);
+                compute_edge_matrix(v1,v2,v3, rest_edge_mat);
+            } else {
+                compute_edge_matrix(rest_vertices.col(F(0,i)),
+                                    rest_vertices.col(F(1,i)),
+                                    rest_vertices.col(F(2,i)),
+                                    rest_edge_mat);
+            }
             rest_invEdgeMat.back() = rest_edge_mat.inverse();
         }
         // compute derivative of deformation gradient w.r.t. target vertices
