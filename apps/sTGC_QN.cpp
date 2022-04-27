@@ -28,6 +28,7 @@ public:
             form("Tutte"), alpha(1),
             lambda1(0.5), lambda2(0.), k(1.), // lambda1 + k * lambda2 = 1/2
             scale_rest_mesh(false), subtract_total_signed_area(true),
+            aspect_ratio_threshold(0),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
             maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {};
@@ -36,6 +37,7 @@ public:
             form("Tutte"), alpha(1),
             lambda1(0.5), lambda2(0.), k(1.),
             scale_rest_mesh(false), subtract_total_signed_area(true),
+            aspect_ratio_threshold(0),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
             maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {
@@ -58,6 +60,11 @@ public:
     // whether to subtract total signed area
     bool subtract_total_signed_area;
 
+    // rest triangle aspect ratio threshold
+    // triangles above the threshold will be replaced by a better-shaped one with the same area
+    // if the threshold <=1, no rest triangle will be changed
+    double aspect_ratio_threshold;
+
     // optimization options
     double ftol_abs;
     double ftol_rel;
@@ -77,6 +84,7 @@ public:
         std::cout << "k:\t" << k << "\n";
         std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
         std::cout << "subtract_total_signed_area:\t" << subtract_total_signed_area << "\n";
+        std::cout << "aspect_ratio_threshold:\t" << aspect_ratio_threshold << "\n";
         std::cout << "ftol_abs:\t" << ftol_abs << "\n";
         std::cout << "ftol_rel:\t" << ftol_rel << "\n";
         std::cout << "xtol_abs:\t" << xtol_abs << "\n";
@@ -177,6 +185,13 @@ public:
                 break;
             }
             in_file >> subtract_total_signed_area;
+
+            in_file >> optName;
+            if (optName != "aspect_ratio_threshold") {
+                abnormal = "aspect_ratio_threshold";
+                break;
+            }
+            in_file >> aspect_ratio_threshold;
 
             in_file >> optName;
             if (optName != "ftol_abs")
@@ -360,7 +375,8 @@ public:
                       double alpha,
                       double lambda1, double lambda2, double k,
                       bool scale_rest_mesh,
-                      bool subtract_total_signed_area) :
+                      bool subtract_total_signed_area,
+                      double aspect_ratio_threshold) :
             F(restF), solutionFound(false), custom_criteria_met(false),
             locally_injective_Found(false),
             first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
@@ -376,7 +392,8 @@ public:
             vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
             formulation(restV, initV, restF, handles, form, alpha,
                         lambda1, lambda2, k,
-                        scale_rest_mesh, subtract_total_signed_area),
+                        scale_rest_mesh, subtract_total_signed_area,
+                        aspect_ratio_threshold),
             is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
@@ -827,7 +844,8 @@ int main(int argc, char const* argv[])
     //init
     Optimization_Data data(restV, initV, F, handles, options.form,options.alpha,
                            options.lambda1, options.lambda2, options.k,
-                           options.scale_rest_mesh, options.subtract_total_signed_area);
+                           options.scale_rest_mesh, options.subtract_total_signed_area,
+                           options.aspect_ratio_threshold);
 
     auto nv = restV.cols();
     auto nfree = nv - handles.size();
