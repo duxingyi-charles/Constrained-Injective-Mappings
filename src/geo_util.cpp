@@ -5,6 +5,7 @@
 #include "geo_util.h"
 #include <Eigen/Geometry>
 #include <set>
+#include <limits>
 
 Eigen::Vector2d rotate_90deg(const Eigen::Vector2d &vec) {
 //    return Eigen::Vector2d(-(vec.y()), vec.x());
@@ -173,6 +174,19 @@ double compute_Heron_tri_area(double d1, double d2, double d3) {
     c = sqrt(c);
 
     return 0.25 * sqrt(abs((a + (b + c)) * (c - (a - b)) * (c + (a - b)) * (a + (b - c))));
+}
+
+double compute_tri_aspect_ratio(double d1, double d2, double d3) {
+    double a = sqrt(d1);
+    double b = sqrt(d2);
+    double c = sqrt(d3);
+    double s = (a+b+c)/2;
+    if (s-a == 0 || s-b == 0 || s-c == 0) {
+        return std::numeric_limits<double>::infinity();
+    } else {
+//        return a * b * c / (8 * (s - a) * (s - b) * (s - c));
+        return (a/(s-a)) * (b/(s-b)) * (c/(s-c)) / 8;
+    }
 }
 
 double compute_tri_signed_area(const Point &p1, const Point &p2, const Point &p3) {

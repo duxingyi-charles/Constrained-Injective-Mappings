@@ -62,6 +62,10 @@ double compute_total_signed_volume_with_gradient(const std::vector<Point3D> &ver
 // input: squared edge lengths of the triangle
 double compute_Heron_tri_area(double d1, double d2, double d3);
 
+// compute triangle aspect ratio
+// input: squared edge lengths of the triangle
+double compute_tri_aspect_ratio(double d1, double d2, double d3);
+
 // computed total signed area of a triangle mesh
 double compute_total_signed_mesh_area(const Eigen::Matrix2Xd &V, const Eigen::Matrix3Xi &F);
 
