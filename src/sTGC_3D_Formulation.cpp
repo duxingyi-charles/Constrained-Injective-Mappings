@@ -227,3 +227,75 @@ double sTGC_3D_Formulation::compute_energy_with_gradient(const VectorXd &x, Vect
     }
 }
 
+double sTGC_3D_Formulation::compute_energy_with_gradient_projectedHessian(const VectorXd &x, VectorXd &energy_list,
+                                                                          VectorXd &grad, SpMat &Hess) {
+    update_V(x);
+
+    // TGC energy, TGC full gradient,
+    // and PSD projected Hessian of (TGC - total signed content) on free vertices
+    VectorXd generalized_content_list;
+    Matrix3Xd tgc_grad;
+    double tgc_energy = tgc.compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(V, freeI,
+                                                                                                      T_free,
+                                                                                                      generalized_content_list,
+                                                                                                      tgc_grad,
+                                                                                                      Hess);
+
+    if (!subtract_total_signed_content) {
+        energy_list = generalized_content_list;
+    } else {
+        // signed volumes
+        VectorXd signed_volume_list;
+        compute_signed_tet_volumes(V, T, signed_volume_list);
+
+        // fill the energy decomposition into energy_list
+//        energy_list.resize(generalized_content_list.size());
+//        for (int i = 0; i < generalized_content_list.size(); ++i) {
+//            energy_list(i) = generalized_content_list(i) - signed_volume_list(i);
+//        }
+        energy_list = generalized_content_list - signed_volume_list;
+    }
+
+    if (subtract_total_signed_content && !fixed_boundary) {
+        //
+        std::vector<Point3D> vertices(V.cols());
+        for (int i = 0; i < V.cols(); ++i) {
+            vertices[i] = V.col(i);
+        }
+        Matrix3Xd total_signed_content_grad;
+        total_signed_content_grad.setZero(3, vertices.size());
+        double total_signed_content = compute_total_signed_volume_with_gradient(
+                vertices, boundary_triangles, total_signed_content_grad);
+
+        // full gradient
+        Matrix3Xd m_grad = tgc_grad - total_signed_content_grad;
+
+        // gradient of free vertices
+        grad.resize(freeI.size() * m_grad.rows());
+        for (int i = 0; i < freeI.size(); ++i) {
+            grad(3*i) = m_grad(0,freeI(i));
+            grad(3*i+1) = m_grad(1,freeI(i));
+            grad(3*i+2) = m_grad(2,freeI(i));
+        }
+
+        // energy
+        return tgc_energy - total_signed_content;
+    }
+    else {
+        // gradient of free vertices
+        grad.resize(freeI.size() * tgc_grad.rows());
+        for (int i = 0; i < freeI.size(); ++i) {
+            grad(3*i) = tgc_grad(0,freeI(i));
+            grad(3*i+1) = tgc_grad(1,freeI(i));
+            grad(3*i+2) = tgc_grad(2,freeI(i));
+        }
+
+        // energy
+        if (subtract_total_signed_content) { // the boundary must be fixed
+            return tgc_energy - boundary_signed_content;
+        } else {
+            return tgc_energy;
+        }
+    }
+}
+

@@ -31,20 +31,14 @@ public:
     double compute_energy_with_gradient(const Eigen::VectorXd& x,
                                         Eigen::VectorXd& grad);
 
-    // PSD-projected Hessian of (TGC - total signed area)
+    // PSD-projected Hessian of (TGC - total signed content)
 //    double compute_energy_with_gradient_projectedHessian(const Eigen::VectorXd &x,
 //                                                               Eigen::VectorXd &grad, SpMat &Hess);
 
-    // PSD-projected Hessian of (TGC - total signed area)
-//    double compute_energy_with_gradient_projectedHessian(const Eigen::VectorXd &x,
-//                                                         Eigen::VectorXd &energy_list,
-//                                                         Eigen::VectorXd &grad, SpMat &Hess);
-
-
-//    static double computeAlpha(const MatrixXd &restV,
-//                               const Matrix2Xd &initV,
-//                               const Matrix3Xi &Faces,
-//                               const std::string &form, double alphaRatio);
+    // PSD-projected Hessian of (TGC - total signed content)
+    double compute_energy_with_gradient_projectedHessian(const Eigen::VectorXd &x,
+                                                         Eigen::VectorXd &energy_list,
+                                                         Eigen::VectorXd &grad, SpMat &Hess);
 
     VectorXd get_x0() const { return x0; }
 
