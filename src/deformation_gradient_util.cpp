@@ -45,6 +45,18 @@ void vectorize2x2(const Eigen::Matrix2d &A, Eigen::Vector4d &vecA) {
     vecA[3] = A(1,1);
 }
 
+void vectorize3x3(const Eigen::Matrix3d& A, Vector9d& vecA) {
+    vecA[0] = A(0,0);
+    vecA[1] = A(1,0);
+    vecA[2] = A(2,0);
+    vecA[3] = A(0,1);
+    vecA[4] = A(1,1);
+    vecA[5] = A(2,1);
+    vecA[6] = A(0,2);
+    vecA[7] = A(1,2);
+    vecA[8] = A(2,2);
+}
+
 
 void compute_flatten_pFpx(const Eigen::Matrix2d &invEdgeMat,
                           Eigen::MatrixXd& pFpx) {

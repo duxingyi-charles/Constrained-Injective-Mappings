@@ -7,6 +7,7 @@
 
 #include <Eigen/Core>
 
+typedef Eigen::Matrix<double,9,1> Vector9d;
 
 // compute edge matrix for a triangle
 void compute_edge_matrix(const Eigen::VectorXd& v1,
@@ -32,6 +33,10 @@ void vectorize(const Eigen::MatrixXd& A,
 // vectorize a 2x2 matrix
 void vectorize2x2(const Eigen::Matrix2d& A,
                   Eigen::Vector4d& vecA);
+
+// vectorize a 3x3 matrix
+void vectorize3x3(const Eigen::Matrix3d& A,
+                  Vector9d& vecA);
 
 // compute flattened 4th-order tensor pFpx for a triangle
 // input: inverse of auxiliary triangle's edge matrix
