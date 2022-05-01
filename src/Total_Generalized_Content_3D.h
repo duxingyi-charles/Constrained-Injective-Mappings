@@ -36,14 +36,14 @@ public:
 
     // compute total generalized content and its gradient,
     // and PSD projected Hessian of (TGC - total signed content) on free vertices
-//    double compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(
-//            const Eigen::Matrix3Xd &vertices,
-//            const Eigen::VectorXi &freeI,
-//            const Eigen::Matrix4Xi  &T_free,
-//            // output
-//            Eigen::VectorXd &generalized_content_list,
-//            Eigen::Matrix3Xd &grad,
-//            SpMat &Hess) const;
+    double compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(
+            const Eigen::Matrix3Xd &vertices,
+            const Eigen::VectorXi &freeI,
+            const Eigen::Matrix4Xi  &T_free,
+            // output
+            Eigen::VectorXd &generalized_content_list,
+            Eigen::Matrix3Xd &grad,
+            SpMat &Hess) const;
 
     // compute total generalized content and its gradient,
     // and PSD projected Hessian of TGC on free vertices
@@ -62,18 +62,20 @@ private:
 
     // compute generalized tet volume
     // input:
-    //  - vert: four vertices
+    //  - v1, v2, v3, v4: four vertices
     double compute_generalized_TetVolume(
-            const Eigen::Matrix3Xd &vert,
+            const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
+            const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
             double squared_rest_volume,
             const Eigen::Matrix3d &rest_inverse_EdgeMat
     ) const;
 
     // compute generalized tet volume with gradient wrt. vert
     // input:
-    //  - vert: four vertices
+    //  - v1, v2, v3, v4: four vertices
     double compute_generalized_TetVolume_with_gradient(
-            const Eigen::Matrix3Xd &vert,
+            const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
+            const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
             double squared_rest_volume,
             const Eigen::Matrix3d &rest_inverse_EdgeMat,
             const Eigen::MatrixXd &pFpx,
@@ -96,18 +98,14 @@ private:
 
     // compute generalized tet volume with gradient and PSD-projected Hessian wrt. vert
     // input:
-    //  - vert: four vertices
-//    double compute_generalized_TetVolume_with_gradient_projected_subtracted_Hessian(
-//            const Eigen::Matrix3Xd &vert,
-//            double scaled_squared_rest_volume,
-//            double rest_volume,
-//            const Eigen::Matrix3d &rest_inverse_EdgeMat,
-//            const Eigen::MatrixXd &pFpx,
-//            double two_alpha_lambda1,
-//            double one_plus_two_alpha_lambda2,
-//            double coeff_diag,
-//            double coeff_off_diag,
-//            Eigen::Matrix3Xd &grad, Eigen::MatrixXd &Hess) const;
+    //  - v1, v2, v3, v4: four vertices
+    double compute_generalized_TetVolume_with_gradient_projected_subtracted_Hessian(
+            const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
+            const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
+            double squared_rest_volume, double rest_volume,
+            const Eigen::Matrix3d &rest_inverse_EdgeMat,
+            const Eigen::MatrixXd &pFpx,
+            Eigen::Matrix3Xd &grad, Eigen::MatrixXd &Hess) const;
 
 private:
     // alpha parameter
