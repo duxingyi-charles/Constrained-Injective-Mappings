@@ -25,9 +25,16 @@ public:
     // compute total generalized content
     double compute_total_generalized_content(const Eigen::Matrix3Xd &vertices) const;
 
+    // compute total generalized negative content
+    double compute_total_generalized_negative_content(const Eigen::Matrix3Xd &vertices) const;
+
     // compute total generalized content, record generalized content of each tetrahedron
     double compute_total_generalized_content(const Eigen::Matrix3Xd &vertices,
                                              Eigen::VectorXd &generalized_content_list) const;
+
+    // compute total generalized negative content, record generalized negative content of each tetrahedron
+    double compute_total_generalized_negative_content(const Eigen::Matrix3Xd &vertices,
+                                             Eigen::VectorXd &generalized_negative_content_list) const;
 
     // compute total generalized content and its gradient
     double compute_total_generalized_content_with_gradient(const Eigen::Matrix3Xd &vertices,
@@ -64,6 +71,16 @@ private:
     // input:
     //  - v1, v2, v3, v4: four vertices
     double compute_generalized_TetVolume(
+            const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
+            const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
+            double squared_rest_volume,
+            const Eigen::Matrix3d &rest_inverse_EdgeMat
+    ) const;
+
+    // compute generalized negative tet volume
+    // input:
+    //  - v1, v2, v3, v4: four vertices
+    double compute_generalized_negative_TetVolume(
             const Eigen::Vector3d &v1, const Eigen::Vector3d &v2,
             const Eigen::Vector3d &v3, const Eigen::Vector3d &v4,
             double squared_rest_volume,

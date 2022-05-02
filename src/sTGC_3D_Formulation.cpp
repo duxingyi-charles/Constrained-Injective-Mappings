@@ -123,24 +123,14 @@ sTGC_3D_Formulation::sTGC_3D_Formulation(const Matrix3Xd &rest_vertices, Matrix3
 double sTGC_3D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
-    // TGC
-    double tgc_energy = tgc.compute_total_generalized_content(V);
-
     if (subtract_total_signed_content) {
         if (fixed_boundary) {
-            return tgc_energy - boundary_signed_content;
+            return tgc.compute_total_generalized_content(V) - boundary_signed_content;
+        } else {
+            return tgc.compute_total_generalized_negative_content(V);
         }
-        // convert V to a vector of Point
-        std::vector<Point3D> vertices(V.cols());
-        for (int i = 0; i < V.cols(); ++i) {
-            vertices[i] = V.col(i);
-        }
-        double total_signed_content = compute_total_signed_volume(vertices, boundary_triangles);
-        //
-        return tgc_energy - total_signed_content;
-    }
-    else {
-        return tgc_energy;
+    } else {
+        return tgc.compute_total_generalized_content(V);
     }
 }
 
@@ -156,25 +146,11 @@ void sTGC_3D_Formulation::update_V(const VectorXd &x) {
 double sTGC_3D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
-    // TGC
-    VectorXd generalized_content_list;
-    tgc.compute_total_generalized_content(V,generalized_content_list);
-
     if (subtract_total_signed_content) {
-        // signed content
-        VectorXd signed_content_list;
-        compute_signed_tet_volumes(V, T, signed_content_list);
-
-        // fill the energy decomposition into energy_list
-        energy_list.resize(generalized_content_list.size());
-        for (int i = 0; i < generalized_content_list.size(); ++i) {
-            energy_list(i) = generalized_content_list(i) - signed_content_list(i);
-        }
+        return tgc.compute_total_generalized_negative_content(V, energy_list);
     } else {
-        energy_list = generalized_content_list;
+        return tgc.compute_total_generalized_content(V, energy_list);
     }
-
-    return energy_list.sum();
 }
 
 double sTGC_3D_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
