@@ -96,9 +96,9 @@ if (WIN32)
     # directory where SuiteSparse-config.cmake was installed.
     # ------------------------------------------------------------------
     find_package(SuiteSparse CONFIG REQUIRED)
-    target_link_libraries(arcOverlap_PN PRIVATE SuiteSparse::cholmod)
-    target_link_libraries(sTGC_PN PRIVATE SuiteSparse::cholmod)
-    target_link_libraries(sTGC_3D_PN PRIVATE SuiteSparse::cholmod)
+    target_link_libraries(arcOverlap_PN PRIVATE SuiteSparse::CHOLMOD)
+    target_link_libraries(sTGC_PN PRIVATE SuiteSparse::CHOLMOD)
+    target_link_libraries(sTGC_3D_PN PRIVATE SuiteSparse::CHOLMOD)
 else()
     set(SUITESPARSE_LIB_DIR /usr/local/lib CACHE PATH "suitesparse library directory")
     target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
