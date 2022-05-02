@@ -1127,6 +1127,14 @@ int main(int argc, char const* argv[])
         return -1;
     }
 
+    // normalize mesh to have unit content
+    double init_total_signed_content = compute_total_signed_mesh_volume(initV, F);
+    if (init_total_signed_content > 0) {
+        double scale = cbrt(1. / init_total_signed_content);
+        initV *= scale;
+        restV *= scale;
+    }
+
     //import options
     SolverOptionManager options(optFile, resFile);
 //    options.printOptions();
