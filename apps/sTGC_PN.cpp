@@ -1141,12 +1141,12 @@ int main(int argc, char const* argv[])
     }
 
     // normalize mesh to have unit content
-    /*double init_total_signed_content = compute_total_signed_mesh_area(initV, F);
+    double init_total_signed_content = compute_total_signed_mesh_area(initV, F);
     if (init_total_signed_content > 0) {
         double scale = sqrt(1. / init_total_signed_content);
         initV *= scale;
         restV *= scale;
-    }*/
+    }
 
     //import options
     SolverOptionManager options(optFile, resFile);
@@ -1219,6 +1219,27 @@ int main(int argc, char const* argv[])
     SpMat Hess(x.size(), x.size());
     energy = data.formulation.compute_energy_with_gradient_projectedHessian(x, energyList, grad, Hess);
     export_sparse_matrix("D:\\research\\arcOverlap\\debug\\Hess.txt", Hess);*/
+
+    // test: compare gradient with finite difference
+    /*VectorXd x0 = data.x0;
+    VectorXd energy_list0;
+    VectorXd g0;
+    SpMat hess0;
+    double energy0 = data.formulation.compute_energy_with_gradient_projectedHessian(x0, energy_list0, g0, hess0);
+    double delta = 1e-6;
+    VectorXd finite_diff(g0.size());
+    for (int i = 0; i < finite_diff.size(); ++i) {
+        VectorXd x1 = x0;
+        x1(i) -= delta;
+        VectorXd x2 = x0;
+        x2(i) += delta;
+        finite_diff(i) = (data.formulation.compute_energy(x2)-data.formulation.compute_energy(x1))/(2*delta);
+    }
+    std::cout << "gradient\t\t|\t finite diff (delta = " << delta << ")" << std::endl;
+    for (int i = 0; i < g0.size(); ++i) {
+        std::cout << i << ": " <<  g0(i) << "\t\t|\t" << finite_diff(i) << std::endl;
+    }
+    return 0;*/
 
 
     //projected newton

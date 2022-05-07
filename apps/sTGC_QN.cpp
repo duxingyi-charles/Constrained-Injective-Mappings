@@ -836,12 +836,12 @@ int main(int argc, char const* argv[])
     }
 
     // normalize mesh to have unit content
-    /*double init_total_signed_content = compute_total_signed_mesh_area(initV, F);
+    double init_total_signed_content = compute_total_signed_mesh_area(initV, F);
     if (init_total_signed_content > 0) {
         double scale = sqrt(1. / init_total_signed_content);
         initV *= scale;
         restV *= scale;
-    }*/
+    }
 
     //import options
     SolverOptionManager options(optFile);
