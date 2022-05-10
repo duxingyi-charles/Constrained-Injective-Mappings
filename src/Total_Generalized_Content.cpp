@@ -494,15 +494,15 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
         eigen_vec_scale2 = vec_d2;
     }
     else {
-//        Eigen::Matrix2d matA;
-//        matA << a11, a12,
-//                a12, a22;
-//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-//        auto matA_eigenVals = eigenSolver.eigenvalues();
-//        eigen_value_scale1 = matA_eigenVals[0];
-//        eigen_value_scale2 = matA_eigenVals[1];
-        eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
-        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        Eigen::Matrix2d matA;
+        matA << a11, a12,
+                a12, a22;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+        Eigen::Vector2d matA_eigenVals = eigenSolver.eigenvalues();
+        eigen_value_scale1 = matA_eigenVals[0];
+        eigen_value_scale2 = matA_eigenVals[1];
+        /*eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;*/
         double beta = (eigen_value_scale1 - a22) / a12;
         double norm_beta_1 = sqrt(1. + beta * beta);
         eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
@@ -708,15 +708,15 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHe
         eigen_vec_scale2 = vec_d2;
     }
     else {
-//        Eigen::Matrix2d matA;
-//        matA << a11, a12,
-//                a12, a22;
-//        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
-//        auto matA_eigenVals = eigenSolver.eigenvalues();
-//        eigen_value_scale1 = matA_eigenVals[0];
-//        eigen_value_scale2 = matA_eigenVals[1];
-        eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
-        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        Eigen::Matrix2d matA;
+        matA << a11, a12,
+            a12, a22;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(matA);
+        Eigen::Vector2d matA_eigenVals = eigenSolver.eigenvalues();
+        eigen_value_scale1 = matA_eigenVals[0];
+        eigen_value_scale2 = matA_eigenVals[1];
+        /*eigen_value_scale1 = (a11 + a12 - sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;
+        eigen_value_scale2 = (a11 + a12 + sqrt((a11-a22)*(a11-a22)+4*a12*a12))/2;*/
         double beta = (eigen_value_scale1 - a22) / a12;
         double norm_beta_1 = sqrt(1. + beta * beta);
         eigen_vec_scale1 = (beta * vec_d1 + vec_d2) / norm_beta_1;
