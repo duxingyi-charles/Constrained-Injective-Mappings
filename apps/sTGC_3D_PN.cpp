@@ -446,6 +446,17 @@ public:
                 record.emplace_back("resultSingularValues");
             }
 
+            in_file >> optName;
+            if (optName != "lastNonFlip") {
+                abnormal = "lastNonFlip";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("lastNonFlip");
+            }
+
             // save values
             in_file >> optName;
             if (optName != "save") {
@@ -503,13 +514,14 @@ public:
             iteration_count(0),
             non_flip_Found(false), first_non_flip_iteration(-1),
             first_non_flip_V(initV),
+            last_non_flip_iteration(-1), last_non_flip_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             record_vert(false), record_energy(false), record_gradient(false),
             record_gradient_norm(false), record_minArea(false),
 //            record_nb_winded_interior_vertices(false),
             record_searchDirection(false), record_searchNorm(false),
             record_init_singular_values(false), record_result_singular_values(false),
-            record_stepNorm(false), record_stepSize(false),
+            record_stepNorm(false), record_stepSize(false), record_last_non_flip(false),
             vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
             save_vert(false),
             formulation(restV, initV, restF, handles, form, alpha,
@@ -569,6 +581,7 @@ public:
     bool record_stepNorm;  // ||x_next - x||
     bool record_init_singular_values;
     bool record_result_singular_values;
+    bool record_last_non_flip;
     std::vector<Matrix3Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
@@ -580,6 +593,9 @@ public:
     std::vector<double> stepSizeRecord;
     std::vector<double> stepNormRecord;
     Matrix3Xd init_singular_values;
+    int last_non_flip_iteration;
+    Matrix3Xd last_non_flip_V;
+    Matrix3Xd last_non_flip_singular_values;
 
 
     // save data
@@ -606,6 +622,7 @@ public:
             if (i == "stepNorm") record_stepNorm = true;
             if (i == "initSingularValues") record_init_singular_values = true;
             if (i == "resultSingularValues") record_result_singular_values = true;
+            if (i == "lastNonFlip") record_last_non_flip = true;
         }
     }
 
@@ -643,6 +660,9 @@ public:
 //        }
         else {
             //default
+            if (record_last_non_flip) {
+                stopQ_no_flip_degenerate();
+            }
             return false;
         }
     }
@@ -663,6 +683,11 @@ public:
             non_flip_Found = true;
             first_non_flip_iteration = iteration_count;
             first_non_flip_V = formulation.get_V();
+        }
+
+        if (record_last_non_flip && no_flip_degenerate) {
+            last_non_flip_iteration = iteration_count;
+            last_non_flip_V = formulation.get_V();
         }
 
         return no_flip_degenerate;
@@ -908,6 +933,43 @@ public:
                 for (int j = 0; j < nrow; ++j)
                 {
                     out_file << result_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_last_non_flip)
+        {
+            // last_non_flip_iter
+            out_file << "last_non_flip_iter " << 1 << " " << 1 << "\n";
+            out_file << last_non_flip_iteration << " ";
+            out_file << std::endl;
+
+            /// last_non_flip_V
+            nv = last_non_flip_V.cols();
+            ndim = last_non_flip_V.rows();
+            out_file << "last_non_flip_V " << nv << " " << ndim << "\n";
+            for (int i = 0; i < nv; ++i)
+            {
+                for (int j = 0; j < ndim; ++j)
+                {
+                    out_file << last_non_flip_V(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+
+            // last_non_flip_singular_values
+            Matrix3Xd last_non_flip_singular_values;
+            compute_tet_mesh_singular_values(formulation.get_scaled_rest_vertices(), last_non_flip_V, F,
+                                             last_non_flip_singular_values);
+            auto ncol = last_non_flip_singular_values.cols();
+            auto nrow = last_non_flip_singular_values.rows();
+            out_file << "last_non_flip_singular_values " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << last_non_flip_singular_values(j, i) << " ";
                 }
             }
             out_file << std::endl;
