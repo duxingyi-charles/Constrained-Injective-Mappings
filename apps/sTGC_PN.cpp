@@ -595,7 +595,6 @@ public:
     Matrix2Xd init_singular_values;
     int last_non_flip_iteration;
     Matrix2Xd last_non_flip_V;
-    Matrix2Xd last_non_flip_singular_values;
 
 
     // save data
