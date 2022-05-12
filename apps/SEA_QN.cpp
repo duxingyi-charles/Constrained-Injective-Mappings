@@ -346,6 +346,17 @@ public:
                 record.emplace_back("resultSingularValues");
             }
 
+            in_file >> optName;
+            if (optName != "lastInjective") {
+                abnormal = "lastInjective";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("lastInjective");
+            }
+
             break;
         }
 
@@ -384,12 +395,14 @@ public:
             first_locally_injective_V(initV),
             non_flip_Found(false), first_non_flip_iteration(-1),
             first_non_flip_V(initV),
+            last_injective_iteration(-1), last_injective_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
             nb_feval(0), nb_geval(0),
             record_vert(false), record_energy(false), record_gradient(false),
             record_gradient_norm(false), record_minArea(false),
             record_nb_winded_interior_vertices(false),
             record_init_singular_values(false), record_result_singular_values(false),
+            record_last_injective(false),
             vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
             formulation(restV, initV, restF, handles, form, alpha,
                         lambda1, lambda2, k, theta,
@@ -455,6 +468,7 @@ public:
     bool record_nb_winded_interior_vertices;
     bool record_init_singular_values;
     bool record_result_singular_values;
+    bool record_last_injective;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
@@ -462,6 +476,8 @@ public:
     std::vector<double> gradNormRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
     Matrix2Xd init_singular_values;
+    int last_injective_iteration;
+    Matrix2Xd last_injective_V;
 
 
     // record information we cared about
@@ -477,6 +493,7 @@ public:
             if (i == "gradNorm") record_gradient_norm = true;
             if (i == "initSingularValues") record_init_singular_values = true;
             if (i == "resultSingularValues") record_result_singular_values = true;
+            if (i == "lastInjective") record_last_injective = true;
         }
     }
 
@@ -513,6 +530,9 @@ public:
         }
         else {
             //default
+            if (record_last_injective) {
+                stopQ_globally_injective();
+            }
             return false;
         }
     }
@@ -569,23 +589,31 @@ public:
     }
 
     bool stopQ_globally_injective() {
+        bool globally_injective;
         if (locally_injective_Found) {
             // locally injective mesh is already found
             if (!stopQ_no_flip_degenerate()) {
-                return false;
+                globally_injective = false;
             } else {
-                return !(formulation.has_found_intersection);
+                globally_injective = !(formulation.has_found_intersection);
             }
         } else {
             if (!stopQ_locally_injective()) {
-                return false;
+                globally_injective = false;
             } else {
                 // check global injectivity:
                 // if no arc-arc intersection is found in the last energy/gradient evaluation,
                 // then global injectivity is surely achieved
-                return !(formulation.has_found_intersection);
+                globally_injective = !(formulation.has_found_intersection);
             }
         }
+
+        if (record_last_injective && globally_injective) {
+            last_injective_iteration = iteration_count;
+            last_injective_V = formulation.get_V();
+        }
+
+        return globally_injective;
     }
 
     //export result
@@ -755,6 +783,43 @@ public:
                 for (int j = 0; j < nrow; ++j)
                 {
                     out_file << result_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_last_injective)
+        {
+            // last_injective_iter
+            out_file << "last_injective_iter " << 1 << " " << 1 << "\n";
+            out_file << last_injective_iteration << " ";
+            out_file << std::endl;
+
+            /// last_injective_V
+            nv = last_injective_V.cols();
+            ndim = last_injective_V.rows();
+            out_file << "last_injective_V " << nv << " " << ndim << "\n";
+            for (int i = 0; i < nv; ++i)
+            {
+                for (int j = 0; j < ndim; ++j)
+                {
+                    out_file << last_injective_V(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+
+            // last_injective_singular_values
+            Matrix2Xd last_injective_singular_values;
+            compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), last_injective_V, F,
+                                             last_injective_singular_values);
+            auto ncol = last_injective_singular_values.cols();
+            auto nrow = last_injective_singular_values.rows();
+            out_file << "last_injective_singular_values " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << last_injective_singular_values(j, i) << " ";
                 }
             }
             out_file << std::endl;
