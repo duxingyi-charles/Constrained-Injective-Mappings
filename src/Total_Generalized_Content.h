@@ -15,8 +15,11 @@ class Total_Generalized_Content {
 public:
     Total_Generalized_Content() = default;
 
-    // initialize from rest mesh and parameters: get ready for computing TGC energy and derivatives
+    // initialize from rest mesh and parameters
+    // get ready for computing TGC energy and derivatives
     // need to satisfy lambda1 + k * lambda2 = 1/2
+    // TLC (lambda1 = 0.5, lambda2 = 0, k = 1)
+    // IsoTLC (lambda1 = lambda2 = 0.25, k = 1)
     void initialize(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix3Xi &faces,
                     const std::string &form, double alpha, double lambda1, double lambda2, double k,
                     double aspect_ratio_threshold);
