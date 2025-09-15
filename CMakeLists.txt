@@ -84,7 +84,8 @@ target_link_libraries(SEA_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt
 
 # suitesparse
 
-set(SUITESPARSE_INCLUDE_DIR /usr/local/include CACHE PATH "suitesparse include directory")
+# suitesparse installed by homebrew (Apple Silicon)
+set(SUITESPARSE_INCLUDE_DIR /opt/homebrew/include/suitesparse CACHE PATH "suitesparse include directory")
 target_include_directories(arcOverlap_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
 target_include_directories(sTGC_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
 target_include_directories(sTGC_3D_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
@@ -100,7 +101,8 @@ if (WIN32)
     target_link_libraries(sTGC_PN PRIVATE SuiteSparse::CHOLMOD)
     target_link_libraries(sTGC_3D_PN PRIVATE SuiteSparse::CHOLMOD)
 else()
-    set(SUITESPARSE_LIB_DIR /usr/local/lib CACHE PATH "suitesparse library directory")
+    # cholmod from suitesparse installed by homebrew (Apple Silicon)
+    set(SUITESPARSE_LIB_DIR /opt/homebrew/lib CACHE PATH "suitesparse library directory")
     target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
     target_link_libraries(sTGC_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
     target_link_libraries(sTGC_3D_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
