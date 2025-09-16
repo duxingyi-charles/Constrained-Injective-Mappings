@@ -2,10 +2,10 @@
 // Created by Charles Du on 3/28/22.
 //
 
-#include "sTGC_Formulation.h"
+#include "sTGC_2D_Formulation.h"
 #include <iostream>
 
-sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
+sTGC_2D_Formulation::sTGC_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                    const VectorXi &handles, const std::string &form, double alpha, double lambda1,
                                    double lambda2, double k, bool scale_rest_mesh, bool subtract_total_signed_area,
                                    double aspect_ratio_threshold) :
@@ -119,7 +119,7 @@ sTGC_Formulation::sTGC_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init
     }
 }
 
-double sTGC_Formulation::compute_energy(const VectorXd &x) {
+double sTGC_2D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
     // TGC
@@ -144,7 +144,7 @@ double sTGC_Formulation::compute_energy(const VectorXd &x) {
 }
 
 
-void sTGC_Formulation::update_V(const VectorXd &x) {
+void sTGC_2D_Formulation::update_V(const VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
         for (auto j = 0; j < vDim; ++j) {
@@ -153,7 +153,7 @@ void sTGC_Formulation::update_V(const VectorXd &x) {
     }
 }
 
-double sTGC_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+double sTGC_2D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
     if (subtract_total_signed_area) { // sTGC
@@ -164,7 +164,7 @@ double sTGC_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list
     }
 }
 
-double sTGC_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
+double sTGC_2D_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
     update_V(x);
 
     // TGC
@@ -212,7 +212,7 @@ double sTGC_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorX
     }
 }
 
-double sTGC_Formulation::compute_energy_with_gradient_projectedHessian(const VectorXd &x, VectorXd &energy_list,
+double sTGC_2D_Formulation::compute_energy_with_gradient_projectedHessian(const VectorXd &x, VectorXd &energy_list,
                                                                        VectorXd &grad, SpMat &Hess) {
     update_V(x);
 

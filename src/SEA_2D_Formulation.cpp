@@ -2,11 +2,11 @@
 // Created by Charles Du on 4/29/21.
 //
 
-#include "Arc_Overlap_Formulation.h"
+#include "SEA_2D_Formulation.h"
 #include <iostream>
 #include <utility>
 
-Arc_Overlap_Formulation::Arc_Overlap_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
+SEA_2D_Formulation::SEA_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
                                                  Matrix3Xi faces, const VectorXi &handles,
                                                  const std::string &form, double alphaRatio,
                                                  double alpha, double theta) :
@@ -75,7 +75,7 @@ Arc_Overlap_Formulation::Arc_Overlap_Formulation(const MatrixXd &rest_vertices, 
 
 }
 
-double Arc_Overlap_Formulation::computeAlpha(const MatrixXd &restV, const Matrix2Xd &initV, const Matrix3Xi &Faces,
+double SEA_2D_Formulation::computeAlpha(const MatrixXd &restV, const Matrix2Xd &initV, const Matrix3Xi &Faces,
                                              const std::string &form, double alphaRatio) {
     unsigned nF = Faces.cols();
     double rest_measure;
@@ -92,7 +92,7 @@ double Arc_Overlap_Formulation::computeAlpha(const MatrixXd &restV, const Matrix
     return alphaRatio * fabs(init_measure) / rest_measure;
 }
 
-double Arc_Overlap_Formulation::compute_energy(const VectorXd &x) {
+double SEA_2D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
     // TLC
@@ -110,7 +110,7 @@ double Arc_Overlap_Formulation::compute_energy(const VectorXd &x) {
     return tlc_energy + arc_segment_area - arc_occupancy;
 }
 
-void Arc_Overlap_Formulation::update_V(const VectorXd &x) {
+void SEA_2D_Formulation::update_V(const VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
         for (auto j = 0; j < vDim; ++j) {
@@ -119,7 +119,7 @@ void Arc_Overlap_Formulation::update_V(const VectorXd &x) {
     }
 }
 
-double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, VectorXd& grad) {
+double SEA_2D_Formulation::compute_energy_with_gradient(const VectorXd& x, VectorXd& grad) {
     update_V(x);
 
     // TLC
@@ -166,7 +166,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient(const VectorXd& x, 
 }
 
 
-double Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &grad,
+double SEA_2D_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &grad,
                                                                                     SpMat &Hess) {
     update_V(x);
 
@@ -203,7 +203,7 @@ double Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHess
     return tlc_energy + arc_segment_area - arc_occupancy;
 }
 
-double Arc_Overlap_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+double SEA_2D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
     // TLC
@@ -239,7 +239,7 @@ double Arc_Overlap_Formulation::compute_energy(const VectorXd &x, VectorXd &ener
 }
 
 double
-Arc_Overlap_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &energy_list,
+SEA_2D_Formulation::compute_energy_with_gradient_approxProjectedHessian(const VectorXd &x, VectorXd &energy_list,
                                                                              VectorXd &grad, SpMat &Hess) {
     update_V(x);
 

@@ -1,5 +1,9 @@
 //
 // Created by Charles Du on 4/5/22.
+// Total Generalized Lifted Content (TGC) Quasi-Newton solver for tetrahedral meshes
+// Isometric Total Lifted Content (IsoTLC) was introduced in "Isometric Energies for Recovering Injectivity in Constrained Mapping", SIGGRAPH Asia 2022.
+// IsoTLC is a special case of TGC:
+// IsoTLC: lambda1 = 1/6, lambda2 = 0, k = 1
 //
 
 #include <cmath>

@@ -5,17 +5,17 @@
 #ifndef TLC_SEA_FORMULATION_H
 #define TLC_SEA_FORMULATION_H
 
-#include "Total_Generalized_Content.h"
+#include "Total_Generalized_Content_2D.h"
 #include "Arc_Occupancy.h"
 
 #include "timing.h"
 
 using namespace Eigen;
 
-class SEA_Formulation {
+class SEA_Generalized_2D_Formulation {
 public:
     // parameter should satisfy: lambda1 + k * lambda2 = 1/2
-    SEA_Formulation(const MatrixXd& rest_vertices, Matrix2Xd init_vertices,
+    SEA_Generalized_2D_Formulation(const MatrixXd& rest_vertices, Matrix2Xd init_vertices,
                      Matrix3Xi faces,
                      const VectorXi& handles, const std::string& form,
                      double alpha, double lambda1, double lambda2, double k,
@@ -23,7 +23,7 @@ public:
                      bool scale_rest_mesh,
                      double aspect_ratio_threshold);
 
-    ~SEA_Formulation() = default;
+    ~SEA_Generalized_2D_Formulation() = default;
 
 
     double compute_energy(const Eigen::VectorXd& x);
@@ -77,7 +77,7 @@ private:
     std::vector<std::pair<size_t, size_t>> boundary_edges;
 
     // TGC energy
-    Total_Generalized_Content tgc;
+    Total_Generalized_Content_2D tgc;
     // arc occupancy
     Arc_Occupancy arcOccupancy;
 

@@ -1,5 +1,11 @@
 //
-// Created by Charles Du on 2/23/22.
+// Created by Charles Du on 4/27/22.
+// Generalized Smooth Excess Area (SEA) Quasi-Newton solver for triangle meshes.
+// SEA was introduced in "Optimizing Global Injectivity for Constrained Parameterization", SIGGRAPH Asia 2021.
+// Isometric SEA (IsoSEA) was introduced in "Isometric Energies for Recovering Injectivity in Constrained Mapping", SIGGRAPH Asia 2022.
+// SEA and IsoSEA are special cases of Generalized SEA under different parameter settings:
+// SEA: lambda1 = 0.5, lambda2 = 0, k = 1
+// IsoSEA: lambda1 = lambda2 = 0.25, k = 1
 //
 
 #include <cmath>
@@ -12,8 +18,9 @@
 
 #include <nlopt.hpp>
 
-#include "sTLC_Iso_Formulation.h"
+#include "SEA_Generalized_2D_Formulation.h"
 #include "optimization_util.h"
+#include "deformation_gradient_util.h"
 
 using namespace Eigen;
 
@@ -24,15 +31,23 @@ class SolverOptionManager
 public:
     //default options
     SolverOptionManager() :
-        form("Tutte"), alpha(1), scale_rest_mesh(false), subtract_total_signed_area(true),
-        ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-        maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
+            form("Tutte"), alpha(1),
+            lambda1(0.5), lambda2(0.), k(1.), // lambda1 + k * lambda2 = 1/2
+            theta(0.1),
+            scale_rest_mesh(false),
+            aspect_ratio_threshold(0),
+            ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
+            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {};
     //import options from file
     explicit SolverOptionManager(const char* filename) :
-        form("Tutte"), alpha(1), scale_rest_mesh(false), subtract_total_signed_area(true),
-        ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-        maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
+            form("Tutte"), alpha(1),
+            lambda1(0.5), lambda2(0.), k(1.),
+            theta(0.1),
+            scale_rest_mesh(false),
+            aspect_ratio_threshold(0),
+            ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
+            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
     {
         if (!importOptions(filename))
         {
@@ -46,9 +61,16 @@ public:
     std::string form;
     double alpha;
     bool scale_rest_mesh;
+    double lambda1;
+    double lambda2;
+    double k;
 
-    // whether to subtract total signed area
-    bool subtract_total_signed_area;
+    double theta; // arc angle
+
+    // rest triangle aspect ratio threshold
+    // triangles above the threshold will be replaced by a better-shaped one with the same area
+    // if the threshold <=1, no rest triangle will be changed
+    double aspect_ratio_threshold;
 
     // optimization options
     double ftol_abs;
@@ -64,8 +86,12 @@ public:
     {
         std::cout << "form:\t" << form << "\n";
         std::cout << "alpha:\t" << alpha << "\n";
+        std::cout << "lambda1:\t" << lambda1 << "\n";
+        std::cout << "lambda2:\t" << lambda2 << "\n";
+        std::cout << "k:\t" << k << "\n";
+        std::cout << "theta:\t" << theta << "\n";
         std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
-        std::cout << "subtract_total_signed_area:\t" << subtract_total_signed_area << "\n";
+        std::cout << "aspect_ratio_threshold:\t" << aspect_ratio_threshold << "\n";
         std::cout << "ftol_abs:\t" << ftol_abs << "\n";
         std::cout << "ftol_rel:\t" << ftol_rel << "\n";
         std::cout << "xtol_abs:\t" << xtol_abs << "\n";
@@ -129,6 +155,38 @@ public:
 //            in_file >> theta;
 
             in_file >> optName;
+            if (optName != "lambda1")
+            {
+                abnormal = "lambda1";
+                break;
+            }
+            in_file >> lambda1;
+
+            in_file >> optName;
+            if (optName != "lambda2")
+            {
+                abnormal = "lambda2";
+                break;
+            }
+            in_file >> lambda2;
+
+            in_file >> optName;
+            if (optName != "k")
+            {
+                abnormal = "k";
+                break;
+            }
+            in_file >> k;
+
+            in_file >> optName;
+            if (optName != "theta")
+            {
+                abnormal = "theta";
+                break;
+            }
+            in_file >> theta;
+
+            in_file >> optName;
             if (optName != "scale_rest_mesh") {
                 abnormal = "scale_rest_mesh";
                 break;
@@ -136,11 +194,11 @@ public:
             in_file >> scale_rest_mesh;
 
             in_file >> optName;
-            if (optName != "subtract_total_signed_area") {
-                abnormal = "subtract_total_signed_area";
+            if (optName != "aspect_ratio_threshold") {
+                abnormal = "aspect_ratio_threshold";
                 break;
             }
-            in_file >> subtract_total_signed_area;
+            in_file >> aspect_ratio_threshold;
 
             in_file >> optName;
             if (optName != "ftol_abs")
@@ -272,6 +330,39 @@ public:
                 record.emplace_back("gradNorm");
             }
 
+            in_file >> optName;
+            if (optName != "initSingularValues") {
+                abnormal = "initSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("initSingularValues");
+            }
+
+            in_file >> optName;
+            if (optName != "resultSingularValues") {
+                abnormal = "resultSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("resultSingularValues");
+            }
+
+            in_file >> optName;
+            if (optName != "lastInjective") {
+                abnormal = "lastInjective";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("lastInjective");
+            }
+
             break;
         }
 
@@ -295,28 +386,35 @@ class Optimization_Data
 {
 public:
     Optimization_Data(const MatrixXd& restV,
-        const Matrix2Xd& initV,
-        const Matrix3Xi& restF,
-        const VectorXi& handles,
-        const std::string& form,
-        double alpha,
-        bool scale_rest_mesh,
-        bool subtract_total_signed_area) :
-        F(restF), solutionFound(false), custom_criteria_met(false),
-        locally_injective_Found(false),
-        first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
-        first_locally_injective_V(initV),
-        non_flip_Found(false), first_non_flip_iteration(-1),
-        first_non_flip_V(initV),
-        lastFunctionValue(HUGE_VAL), stopCode("none"),
-        nb_feval(0), nb_geval(0),
-        record_vert(false), record_energy(false), record_gradient(false),
-        record_gradient_norm(false), record_minArea(false),
-        record_nb_winded_interior_vertices(false),
-        vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
-        formulation(restV, initV, restF, handles, form, alpha,
-                    scale_rest_mesh, subtract_total_signed_area),
-        is_boundary_vertex(initV.cols(), false)
+                      const Matrix2Xd& initV,
+                      const Matrix3Xi& restF,
+                      const VectorXi& handles,
+                      const std::string& form,
+                      double alpha,
+                      double lambda1, double lambda2, double k,
+                      double theta,
+                      bool scale_rest_mesh,
+                      double aspect_ratio_threshold) :
+            F(restF), solutionFound(false), custom_criteria_met(false),
+            locally_injective_Found(false),
+            first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
+            first_locally_injective_V(initV),
+            non_flip_Found(false), first_non_flip_iteration(-1),
+            first_non_flip_V(initV),
+            last_injective_iteration(-1), last_injective_V(initV),
+            lastFunctionValue(HUGE_VAL), stopCode("none"),
+            nb_feval(0), nb_geval(0),
+            record_vert(false), record_energy(false), record_gradient(false),
+            record_gradient_norm(false), record_minArea(false),
+            record_nb_winded_interior_vertices(false),
+            record_init_singular_values(false), record_result_singular_values(false),
+            record_last_injective(false),
+            vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
+            formulation(restV, initV, restF, handles, form, alpha,
+                        lambda1, lambda2, k, theta,
+                        scale_rest_mesh,
+                        aspect_ratio_threshold),
+            is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
 
@@ -329,11 +427,15 @@ public:
 
         // initialize lastGradient
         lastGradient.setZero(x0.size());
+
+        // singular values of initial mesh
+        compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), initV, F,
+                                         init_singular_values);
     };
 
     ~Optimization_Data() = default;
 
-    sTLC_Iso_Formulation formulation;
+    SEA_Generalized_2D_Formulation formulation;
 
     //    Matrix2Xd V;
     //    VectorXi freeI;
@@ -370,12 +472,18 @@ public:
     bool record_gradient_norm;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
+    bool record_init_singular_values;
+    bool record_result_singular_values;
+    bool record_last_injective;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
     std::vector<VectorXd> gradRecord;
     std::vector<double> gradNormRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
+    Matrix2Xd init_singular_values;
+    int last_injective_iteration;
+    Matrix2Xd last_injective_V;
 
 
     // record information we cared about
@@ -389,6 +497,9 @@ public:
             if (i == "nbWindVert") record_nb_winded_interior_vertices = true;
             if (i == "grad")  record_gradient = true;
             if (i == "gradNorm") record_gradient_norm = true;
+            if (i == "initSingularValues") record_init_singular_values = true;
+            if (i == "resultSingularValues") record_result_singular_values = true;
+            if (i == "lastInjective") record_last_injective = true;
         }
     }
 
@@ -420,11 +531,14 @@ public:
         else if (stopCode == "locally_injective") {
             return stopQ_locally_injective();
         }
-//        else if (stopCode == "globally_injective") {
-//            return stopQ_globally_injective();
-//        }
+        else if (stopCode == "globally_injective") {
+            return stopQ_globally_injective();
+        }
         else {
             //default
+            if (record_last_injective) {
+                stopQ_globally_injective();
+            }
             return false;
         }
     }
@@ -478,6 +592,34 @@ public:
             }
             return is_locally_injective;
         }
+    }
+
+    bool stopQ_globally_injective() {
+        bool globally_injective;
+        if (locally_injective_Found) {
+            // locally injective mesh is already found
+            if (!stopQ_no_flip_degenerate()) {
+                globally_injective = false;
+            } else {
+                globally_injective = !(formulation.has_found_intersection);
+            }
+        } else {
+            if (!stopQ_locally_injective()) {
+                globally_injective = false;
+            } else {
+                // check global injectivity:
+                // if no arc-arc intersection is found in the last energy/gradient evaluation,
+                // then global injectivity is surely achieved
+                globally_injective = !(formulation.has_found_intersection);
+            }
+        }
+
+        if (record_last_injective && globally_injective) {
+            last_injective_iteration = iteration_count;
+            last_injective_V = formulation.get_V();
+        }
+
+        return globally_injective;
     }
 
     //export result
@@ -619,6 +761,77 @@ public:
             out_file << std::endl;
         }
 
+        if (record_init_singular_values)
+        {
+            auto ncol = init_singular_values.cols();
+            auto nrow = init_singular_values.rows();
+            out_file << "initSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << init_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_result_singular_values)
+        {
+            Matrix2Xd result_singular_values;
+            compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), formulation.get_V(), F,
+                                             result_singular_values);
+            auto ncol = result_singular_values.cols();
+            auto nrow = result_singular_values.rows();
+            out_file << "resultSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << result_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_last_injective)
+        {
+            // last_injective_iter
+            out_file << "last_injective_iter " << 1 << " " << 1 << "\n";
+            out_file << last_injective_iteration << " ";
+            out_file << std::endl;
+
+            /// last_injective_V
+            nv = last_injective_V.cols();
+            ndim = last_injective_V.rows();
+            out_file << "last_injective_V " << nv << " " << ndim << "\n";
+            for (int i = 0; i < nv; ++i)
+            {
+                for (int j = 0; j < ndim; ++j)
+                {
+                    out_file << last_injective_V(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+
+            // last_injective_singular_values
+            Matrix2Xd last_injective_singular_values;
+            compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), last_injective_V, F,
+                                             last_injective_singular_values);
+            auto ncol = last_injective_singular_values.cols();
+            auto nrow = last_injective_singular_values.rows();
+            out_file << "last_injective_singular_values " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << last_injective_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+
         out_file.close();
         return true;
     }
@@ -710,7 +923,7 @@ int main(int argc, char const* argv[])
 
     bool succeed = importData(dataFile, restV, initV, F, handles);
     if (!succeed) {
-        std::cout << "usage: sTLC_Iso_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: SEA_Generalized_2D_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
     }
 
@@ -722,7 +935,10 @@ int main(int argc, char const* argv[])
 
     //init
     Optimization_Data data(restV, initV, F, handles, options.form,options.alpha,
-                           options.scale_rest_mesh, options.subtract_total_signed_area);
+                           options.lambda1, options.lambda2, options.k,
+                           options.theta,
+                           options.scale_rest_mesh,
+                           options.aspect_ratio_threshold);
 
     auto nv = restV.cols();
     auto nfree = nv - handles.size();
@@ -763,6 +979,8 @@ int main(int argc, char const* argv[])
     }
     double minf;
 
+    // reset timings
+    reset_timings();
     //optimize
     try {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -771,27 +989,27 @@ int main(int argc, char const* argv[])
         std::cout << "Time difference: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [microseconds]" << std::endl;
         std::cout << "result: ";
         switch (result) {
-        case nlopt::SUCCESS:
-            std::cout << "SUCCESS" << std::endl;
-            break;
-        case nlopt::STOPVAL_REACHED:
-            std::cout << "STOPVAL_REACHED" << std::endl;
-            break;
-        case nlopt::FTOL_REACHED:
-            std::cout << "FTOL_REACHED" << std::endl;
-            break;
-        case nlopt::XTOL_REACHED:
-            std::cout << "XTOL_REACHED" << std::endl;
-            break;
-        case nlopt::MAXEVAL_REACHED:
-            std::cout << "MAXEVAL_REACHED" << std::endl;
-            break;
-        case nlopt::MAXTIME_REACHED:
-            std::cout << "MAXTIME_REACHED" << std::endl;
-            break;
-        default:
-            std::cout << "unexpected return code!" << std::endl;
-            break;
+            case nlopt::SUCCESS:
+                std::cout << "SUCCESS" << std::endl;
+                break;
+            case nlopt::STOPVAL_REACHED:
+                std::cout << "STOPVAL_REACHED" << std::endl;
+                break;
+            case nlopt::FTOL_REACHED:
+                std::cout << "FTOL_REACHED" << std::endl;
+                break;
+            case nlopt::XTOL_REACHED:
+                std::cout << "XTOL_REACHED" << std::endl;
+                break;
+            case nlopt::MAXEVAL_REACHED:
+                std::cout << "MAXEVAL_REACHED" << std::endl;
+                break;
+            case nlopt::MAXTIME_REACHED:
+                std::cout << "MAXTIME_REACHED" << std::endl;
+                break;
+            default:
+                std::cout << "unexpected return code!" << std::endl;
+                break;
         }
         std::cout << "met custom stop criteria (" << options.stopCode << "): ";
         if (data.custom_criteria_met) std::cout << "yes" << std::endl;
@@ -800,6 +1018,8 @@ int main(int argc, char const* argv[])
         std::cout << data.iteration_count << " iterations" << std::endl;
 //        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
         std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
+        // timings
+//        print_timings();
     }
     catch (std::exception& e) {
         std::cout << "nlopt failed: " << e.what() << std::endl;

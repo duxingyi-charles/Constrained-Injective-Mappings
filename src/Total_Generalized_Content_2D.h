@@ -11,9 +11,9 @@
 typedef Eigen::SparseMatrix<double> SpMat;
 
 // Total Smooth Generalized Content in 2D
-class Total_Generalized_Content {
+class Total_Generalized_Content_2D {
 public:
-    Total_Generalized_Content() = default;
+    Total_Generalized_Content_2D() = default;
 
     // initialize from rest mesh and parameters
     // get ready for computing TGC energy and derivatives
@@ -24,7 +24,7 @@ public:
                     const std::string &form, double alpha, double lambda1, double lambda2, double k,
                     double aspect_ratio_threshold);
 
-    ~Total_Generalized_Content() = default;
+    ~Total_Generalized_Content_2D() = default;
 
     // compute total generalized content
     double compute_total_generalized_content(const Eigen::Matrix2Xd &vertices) const;

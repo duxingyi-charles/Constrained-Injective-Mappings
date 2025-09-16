@@ -2,10 +2,10 @@
 // Created by Charles Du on 6/19/21.
 //
 
-#include "Arc_Overlap_Iso_Formulation.h"
+#include "SEA_Iso_2D_Formulation.h"
 #include <iostream>
 
-Arc_Overlap_Iso_Formulation::Arc_Overlap_Iso_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
+SEA_Iso_2D_Formulation::SEA_Iso_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
                                                          Matrix3Xi faces, const VectorXi &handles,
                                                          const std::string &form, double alpha, double theta,
                                                          bool scale_rest_mesh) :
@@ -103,7 +103,7 @@ Arc_Overlap_Iso_Formulation::Arc_Overlap_Iso_Formulation(const MatrixXd &rest_ve
     extract_mesh_boundary_edges(F, boundary_edges);
 }
 
-double Arc_Overlap_Iso_Formulation::compute_energy(const VectorXd &x) {
+double SEA_Iso_2D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
     // TLC (isometric)
@@ -121,7 +121,7 @@ double Arc_Overlap_Iso_Formulation::compute_energy(const VectorXd &x) {
     return tlc_iso_energy + arc_segment_area - arc_occupancy;
 }
 
-void Arc_Overlap_Iso_Formulation::update_V(const VectorXd &x) {
+void SEA_Iso_2D_Formulation::update_V(const VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
         for (auto j = 0; j < vDim; ++j) {
@@ -130,7 +130,7 @@ void Arc_Overlap_Iso_Formulation::update_V(const VectorXd &x) {
     }
 }
 
-double Arc_Overlap_Iso_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+double SEA_Iso_2D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
     // TLC
@@ -165,7 +165,7 @@ double Arc_Overlap_Iso_Formulation::compute_energy(const VectorXd &x, VectorXd &
     return tlc_iso_energy + arc_segment_area - arc_occupancy;
 }
 
-double Arc_Overlap_Iso_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
+double SEA_Iso_2D_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
     update_V(x);
 
     // TLC (isometric)

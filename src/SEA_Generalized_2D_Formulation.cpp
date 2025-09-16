@@ -2,10 +2,10 @@
 // Created by Charles Du on 4/27/22.
 //
 
-#include "SEA_Formulation.h"
+#include "SEA_Generalized_2D_Formulation.h"
 #include <iostream>
 
-SEA_Formulation::SEA_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
+SEA_Generalized_2D_Formulation::SEA_Generalized_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                  const VectorXi &handles, const std::string &form, double alpha, double lambda1,
                                  double lambda2, double k, double theta, bool scale_rest_mesh,
                                  double aspect_ratio_threshold) :
@@ -122,7 +122,7 @@ SEA_Formulation::SEA_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_v
 //    }
 }
 
-double SEA_Formulation::compute_energy(const VectorXd &x) {
+double SEA_Generalized_2D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
     // TGC
@@ -144,7 +144,7 @@ double SEA_Formulation::compute_energy(const VectorXd &x) {
     return energy;
 }
 
-void SEA_Formulation::update_V(const Eigen::VectorXd &x) {
+void SEA_Generalized_2D_Formulation::update_V(const Eigen::VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
         for (auto j = 0; j < vDim; ++j) {
@@ -153,7 +153,7 @@ void SEA_Formulation::update_V(const Eigen::VectorXd &x) {
     }
 }
 
-double SEA_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+double SEA_Generalized_2D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
     // TGC
@@ -193,7 +193,7 @@ double SEA_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list)
     }
 }
 
-double SEA_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
+double SEA_Generalized_2D_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
     update_V(x);
 
     // TGC

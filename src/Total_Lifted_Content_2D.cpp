@@ -2,13 +2,13 @@
 // Created by Charles Du on 4/29/21.
 //
 
-#include "Total_Lifted_Content.h"
+#include "Total_Lifted_Content_2D.h"
 
 #include <utility>
 
 #include <Eigen/Eigenvalues>
 
-void Total_Lifted_Content::initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
+void Total_Lifted_Content_2D::initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
                                            const std::string &form, double alpha)
 {
     //
@@ -26,7 +26,7 @@ void Total_Lifted_Content::initialize(const Eigen::MatrixXd &rest_vertices, Eige
 
 
 
-double Total_Lifted_Content::compute_total_lifted_content(const Matrix2Xd &vertices) const {
+double Total_Lifted_Content_2D::compute_total_lifted_content(const Matrix2Xd &vertices) const {
 
     VectorXd energyList(F.cols());
     int vDim = 2;
@@ -46,7 +46,7 @@ double Total_Lifted_Content::compute_total_lifted_content(const Matrix2Xd &verti
     return energyList.sum();
 }
 
-double Total_Lifted_Content::compute_lifted_TriArea(const Matrix2Xd &vert, const Vector3d &r) {
+double Total_Lifted_Content_2D::compute_lifted_TriArea(const Matrix2Xd &vert, const Vector3d &r) {
     auto v1 = vert.col(0);
     auto v2 = vert.col(1);
     auto v3 = vert.col(2);
@@ -60,7 +60,7 @@ double Total_Lifted_Content::compute_lifted_TriArea(const Matrix2Xd &vert, const
 }
 
 double
-Total_Lifted_Content::compute_total_lifted_content_with_gradient(const Matrix2Xd &vertices, Matrix2Xd &grad) const
+Total_Lifted_Content_2D::compute_total_lifted_content_with_gradient(const Matrix2Xd &vertices, Matrix2Xd &grad) const
 {
     int vDim = 2;
     double energy = 0.0;
@@ -91,7 +91,7 @@ Total_Lifted_Content::compute_total_lifted_content_with_gradient(const Matrix2Xd
 }
 
 double
-Total_Lifted_Content::compute_lifted_TriArea_with_gradient(const Matrix2Xd &vert, const Vector3d &r,
+Total_Lifted_Content_2D::compute_lifted_TriArea_with_gradient(const Matrix2Xd &vert, const Vector3d &r,
                                                            Matrix2Xd &grad)
 {
     auto v1 = vert.col(0);
@@ -130,7 +130,7 @@ Total_Lifted_Content::compute_lifted_TriArea_with_gradient(const Matrix2Xd &vert
 }
 
 double
-Total_Lifted_Content::compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
+Total_Lifted_Content_2D::compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
                                                                                            const VectorXi &freeI,
                                                                                            const Matrix3Xi  &F_free,
                                                                                            Matrix2Xd &grad,
@@ -222,7 +222,7 @@ Total_Lifted_Content::compute_total_lifted_content_with_gradient_and_sTLC_projec
     return energy;
 }
 
-double Total_Lifted_Content::compute_lifted_TriArea_with_gradient_Hessian(const Matrix2Xd &vert, const Vector3d &r,
+double Total_Lifted_Content_2D::compute_lifted_TriArea_with_gradient_Hessian(const Matrix2Xd &vert, const Vector3d &r,
                                                                           Matrix2Xd &grad, MatrixXd &Hess) {
     auto v1 = vert.col(0);
     auto v2 = vert.col(1);
@@ -333,7 +333,7 @@ double Total_Lifted_Content::compute_lifted_TriArea_with_gradient_Hessian(const 
     return area;
 }
 
-double Total_Lifted_Content::compute_total_lifted_content(const Matrix2Xd &vertices, VectorXd &energyList) const {
+double Total_Lifted_Content_2D::compute_total_lifted_content(const Matrix2Xd &vertices, VectorXd &energyList) const {
     energyList.resize(F.cols());
     int vDim = 2;
     int simplex_size = 3; //triangle
@@ -353,7 +353,7 @@ double Total_Lifted_Content::compute_total_lifted_content(const Matrix2Xd &verti
 }
 
 double
-Total_Lifted_Content::compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
+Total_Lifted_Content_2D::compute_total_lifted_content_with_gradient_and_sTLC_projectedHessian(const Matrix2Xd &vertices,
                                                                                            const VectorXi &freeI,
                                                                                            const Matrix3Xi &F_free,
                                                                                            VectorXd &lifted_content_list,

@@ -1,8 +1,9 @@
 //
 // Created by Charles Du on 6/19/21.
+// Isometric Smooth Excess Area (IsoSEA) Quasi-Newton solver for triangle meshes.
+// Isometric Energies for Recovering Injectivity in Constrained Mapping, SIGGRAPH Asia 2022.
 //
 
-// 2D/3D lifted formulation
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -13,7 +14,7 @@
 
 #include <nlopt.hpp>
 
-#include "Arc_Overlap_Iso_Formulation.h"
+#include "SEA_Iso_2D_Formulation.h"
 #include "optimization_util.h"
 
 using namespace Eigen;
@@ -297,7 +298,7 @@ public:
 
     ~ Optimization_Data() = default;
 
-    Arc_Overlap_Iso_Formulation formulation;
+    SEA_Iso_2D_Formulation formulation;
 
 //    Matrix2Xd V;
 //    VectorXi freeI;
@@ -630,7 +631,7 @@ int main(int argc, char const *argv[])
 
     bool succeed = importData(dataFile,restV,initV,F,handles);
     if (!succeed) {
-        std::cout << "usage: arcOverlap_Iso_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: SEA_Iso_2D_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
     }
 

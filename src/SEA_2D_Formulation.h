@@ -5,7 +5,7 @@
 #ifndef TLC_ARC_OVERLAP_FORMULATION_H
 #define TLC_ARC_OVERLAP_FORMULATION_H
 
-#include "Total_Lifted_Content.h"
+#include "Total_Lifted_Content_2D.h"
 #include "Arc_Occupancy.h"
 
 #include "timing.h"
@@ -13,19 +13,19 @@
 
 using namespace Eigen;
 
-class Arc_Overlap_Formulation {
+class SEA_2D_Formulation {
 public:
-    Arc_Overlap_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
+    SEA_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
                             Matrix3Xi faces,
                             const VectorXi &handles, const std::string &form,
                             double alphaRatio, double alpha, double theta);
 
-    ~Arc_Overlap_Formulation() = default;
+    ~SEA_2D_Formulation() = default;
 
 
     double compute_energy(const Eigen::VectorXd &x);
 
-    // compute arc overlap energy,
+    // compute smooth excess area (SEA) energy,
     // record the decomposition of the energy in energy_list
     // decomposition: lifted content per triangle, arc segment area per edge, arc occupancy area
     double compute_energy(const Eigen::VectorXd &x, Eigen::VectorXd &energy_list);
@@ -78,7 +78,7 @@ private:
     std::vector<std::pair<size_t,size_t>> boundary_edges;
 
     // TLC energy
-    Total_Lifted_Content tlc;
+    Total_Lifted_Content_2D tlc;
     // arc occupancy
     Arc_Occupancy arcOccupancy;
 

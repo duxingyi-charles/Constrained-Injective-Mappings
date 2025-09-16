@@ -1,5 +1,5 @@
 //
-// Created by Charles Du on 4/30/21.
+// Created by Charles Du on 6/20/21.
 //
 
 #include <CLI/CLI.hpp>
@@ -7,14 +7,15 @@
 #include <nlohmann/json.hpp>
 
 #include "ScopedTimer.h"
-#include "Arc_Overlap_Formulation.h"
+#include "SEA_Iso_2D_Formulation.h"
 
 using namespace Eigen;
 
 
 
 void parse_input_file(const std::string &input_file,
-                      double &alphaRatio, double &alpha, double &theta, std::string &form,
+                      double &alpha, double &theta, std::string &form,
+                      bool& scale_rest_mesh,
                       MatrixXd &rest_vertices, Matrix2Xd &init_vertices,
                       Matrix3Xi &faces, VectorXi &handles) {
     using json = nlohmann::json;
@@ -26,9 +27,6 @@ void parse_input_file(const std::string &input_file,
     fin >> input;
     fin.close();
 
-    assert(input.contains("alphaRatio"));
-    alphaRatio = input["alphaRatio"];
-
     assert(input.contains("alpha"));
     alpha = input["alpha"];
 
@@ -37,6 +35,9 @@ void parse_input_file(const std::string &input_file,
 
     assert(input.contains("form"));
     form = input["form"];
+
+    assert(input.contains("scale_rest_mesh"));
+    scale_rest_mesh = input["scale_rest_mesh"];
 
     assert(input.contains("restV"));
     int nv = input["restV"].size();
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
         std::string output_file;
     } args;
 
-    CLI::App app{"Subdivide polyArc Test"};
+    CLI::App app{"arcOverlap_Isometric Test"};
     app.add_option("input_file", args.input_file, "input file")
             ->required();
     app.add_option("output_file", args.output_file, "output file")
@@ -111,17 +112,17 @@ int main(int argc, char **argv)
     CLI11_PARSE(app, argc, argv);
 
     // load input
-    double alphaRatio;
     double alpha;
     double theta;
     std::string form;
+    bool scale_rest_mesh;
 
     MatrixXd rest_vertices;
     Matrix2Xd init_vertices;
     Matrix3Xi faces;
     VectorXi handles;
 
-    parse_input_file(args.input_file, alphaRatio, alpha,theta, form, rest_vertices, init_vertices,
+    parse_input_file(args.input_file, alpha,theta, form, scale_rest_mesh,rest_vertices, init_vertices,
                      faces, handles);
 
     // debug: print out input
@@ -134,8 +135,7 @@ int main(int argc, char **argv)
 //    std::cout << "handles = \n" << handles << std::endl;
 
     // initialize arc overlap formulation
-    Arc_Overlap_Formulation formulation(rest_vertices,init_vertices,faces,handles,form,
-                                        alphaRatio,alpha,theta);
+    SEA_Iso_2D_Formulation formulation(rest_vertices,init_vertices,faces,handles,form,alpha,theta,scale_rest_mesh);
 
     // debug: print boundary edges
 //    auto boundary_edges = formulation.get_boundary_edges();
@@ -154,6 +154,16 @@ int main(int argc, char **argv)
     // compute energy and gradient
     VectorXd grad;
     double energy = formulation.compute_energy_with_gradient(formulation.get_x0(), grad);
+
+    Eigen::VectorXd energyList;
+    formulation.compute_energy(formulation.get_x0(), energyList);
+
+    // energy breakdown
+//    int nF = faces.cols();
+//    double tlc_iso_energy = energyList.head(nF).sum();
+//    double arc_occupancy = energyList(energyList.size()-1);
+//    std::cout << "TLC_Iso energy = " << tlc_iso_energy << std::endl;
+
 //    std::cout << "energy = " << energy << std::endl;
 //    std::cout << "grad = \n" << grad << std::endl;
 

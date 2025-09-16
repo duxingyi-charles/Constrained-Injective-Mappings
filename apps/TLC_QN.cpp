@@ -1,4 +1,6 @@
-// 2D/3D lifted formulation
+// Single-file implementation of 2D/3D Total-Lifted-Content (TLC) Quasi-Newton solver
+// Lifting Simplices to Find Injectivity, SIGGRAPH 2020
+
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -1078,7 +1080,7 @@ int main(int argc, char const *argv[])
 
     bool succeed = importData(dataFile,restV,initV,F,handles);
     if (!succeed) {
-        std::cout << "usage: findInjective [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: TLC_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
     }
 

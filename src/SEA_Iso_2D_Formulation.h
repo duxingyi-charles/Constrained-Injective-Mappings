@@ -5,19 +5,19 @@
 #ifndef TLC_ARC_OVERLAP_ISO_FORMULATION_H
 #define TLC_ARC_OVERLAP_ISO_FORMULATION_H
 
-#include "Total_Lifted_Content_Isometric.h"
+#include "Total_Lifted_Content_Isometric_2D.h"
 #include "Arc_Occupancy.h"
 
 using namespace Eigen;
 
-class Arc_Overlap_Iso_Formulation {
+class SEA_Iso_2D_Formulation {
 public:
-    Arc_Overlap_Iso_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
+    SEA_Iso_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices,
                             Matrix3Xi faces,
                             const VectorXi &handles, const std::string &form,
                             double alpha, double theta, bool scale_rest_mesh);
 
-    ~Arc_Overlap_Iso_Formulation() = default;
+    ~SEA_Iso_2D_Formulation() = default;
 
 
     double compute_energy(const Eigen::VectorXd &x);
@@ -77,7 +77,7 @@ private:
     std::vector<std::pair<size_t,size_t>> boundary_edges;
 
     // TLC_Iso energy
-    Total_Lifted_Content_Isometric tlc_iso;
+    Total_Lifted_Content_Isometric_2D tlc_iso;
     // arc occupancy
     Arc_Occupancy arcOccupancy;
 
