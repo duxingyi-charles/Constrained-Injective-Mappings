@@ -14,16 +14,16 @@ using namespace Eigen;
 #include <Eigen/Sparse>
 typedef SparseMatrix<double> SpMat;
 
-class Total_Lifted_Content {
+class Total_Lifted_Content_2D {
 public:
 
-    Total_Lifted_Content() = default;
+    Total_Lifted_Content_2D() = default;
 
     // initialize from rest mesh and parameters: get ready for computing TLC energy and derivatives
     void initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
                          const std::string &form, double alpha);
 
-    ~Total_Lifted_Content() = default;
+    ~Total_Lifted_Content_2D() = default;
 
     // compute total lifted content
     double compute_total_lifted_content(const Matrix2Xd &vertices) const;

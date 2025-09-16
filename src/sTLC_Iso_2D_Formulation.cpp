@@ -2,10 +2,10 @@
 // Created by Charles Du on 2/28/22.
 //
 
-#include "sTLC_Iso_Formulation.h"
+#include "sTLC_Iso_2D_Formulation.h"
 #include <iostream>
 
-sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
+sTLC_Iso_2D_Formulation::sTLC_Iso_2D_Formulation(const MatrixXd &rest_vertices, Matrix2Xd init_vertices, Matrix3Xi faces,
                                            const VectorXi &handles, const std::string &form, double alpha,
                                            bool scale_rest_mesh, bool subtract_total_signed_area)  :
         F(std::move(faces)), V(std::move(init_vertices)), subtract_total_signed_area(subtract_total_signed_area), 
@@ -121,7 +121,7 @@ sTLC_Iso_Formulation::sTLC_Iso_Formulation(const MatrixXd &rest_vertices, Matrix
     }
 }
 
-double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
+double sTLC_Iso_2D_Formulation::compute_energy(const VectorXd &x) {
     update_V(x);
 
     // TLC (isometric)
@@ -145,7 +145,7 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x) {
     }
 }
 
-void sTLC_Iso_Formulation::update_V(const VectorXd &x) {
+void sTLC_Iso_2D_Formulation::update_V(const VectorXd &x) {
     int vDim = 2;
     for (auto i = 0; i < freeI.size(); ++i) {
         for (auto j = 0; j < vDim; ++j) {
@@ -154,7 +154,7 @@ void sTLC_Iso_Formulation::update_V(const VectorXd &x) {
     }
 }
 
-double sTLC_Iso_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
+double sTLC_Iso_2D_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_list) {
     update_V(x);
 
     // TLC (isometric)
@@ -178,7 +178,7 @@ double sTLC_Iso_Formulation::compute_energy(const VectorXd &x, VectorXd &energy_
     return energy_list.sum();
 }
 
-double sTLC_Iso_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
+double sTLC_Iso_2D_Formulation::compute_energy_with_gradient(const VectorXd &x, VectorXd &grad) {
     update_V(x);
 
     // TLC (isometric)

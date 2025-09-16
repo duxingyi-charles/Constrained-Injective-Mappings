@@ -25,9 +25,9 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(arcOverlap PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-add_executable(findInjective apps/TLC.cpp)
-target_link_libraries(findInjective PUBLIC arcOverlap nlopt::nlopt)
-set_target_properties(findInjective PROPERTIES LINKER_LANGUAGE CXX)
+add_executable(TLC_QN apps/TLC_QN.cpp)
+target_link_libraries(TLC_QN PUBLIC arcOverlap nlopt::nlopt)
+set_target_properties(TLC_QN PROPERTIES LINKER_LANGUAGE CXX)
 
 
 
@@ -49,29 +49,29 @@ target_link_libraries(arc_occupancy_test PUBLIC arcOverlap CLI11::CLI11 nlohmann
 add_executable(arc_occupancy_gradient_test apps/arc_occupancy_gradient_test.cpp)
 target_link_libraries(arc_occupancy_gradient_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-add_executable(arcOverlap_test apps/arcOverlap_test.cpp)
-target_link_libraries(arcOverlap_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+add_executable(SEA_test apps/SEA_test.cpp)
+target_link_libraries(SEA_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-add_executable(arcOverlap_Iso_test apps/arcOverlap_Iso_test.cpp)
-target_link_libraries(arcOverlap_Iso_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+add_executable(SEA_Iso_test apps/SEA_Iso_test.cpp)
+target_link_libraries(SEA_Iso_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-add_executable(arcOverlap_QN apps/ArcOverlap_QN.cpp)
-target_link_libraries(arcOverlap_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+add_executable(SEA_2D_QN apps/SEA_2D_QN.cpp)
+target_link_libraries(SEA_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
-add_executable(arcOverlap_PN apps/ArcOverlap_PN.cpp)
-target_link_libraries(arcOverlap_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+add_executable(SEA_2D_PN apps/SEA_2D_PN.cpp)
+target_link_libraries(SEA_2D_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-add_executable(arcOverlap_Iso_QN apps/ArcOverlap_Iso_QN.cpp)
-target_link_libraries(arcOverlap_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+add_executable(SEA_Iso_2D_QN apps/SEA_Iso_2D_QN.cpp)
+target_link_libraries(SEA_Iso_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
-add_executable(sTLC_Iso_QN "apps/sTLC_Iso_QN.cpp")
-target_link_libraries(sTLC_Iso_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+add_executable(sTLC_Iso_2D_QN "apps/sTLC_Iso_2D_QN.cpp")
+target_link_libraries(sTLC_Iso_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
-add_executable(sTGC_QN "apps/sTGC_QN.cpp")
-target_link_libraries(sTGC_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+add_executable(sTGC_2D_QN "apps/sTGC_2D_QN.cpp")
+target_link_libraries(sTGC_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
-add_executable(sTGC_PN "apps/sTGC_PN.cpp")
-target_link_libraries(sTGC_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
+add_executable(sTGC_2D_PN "apps/sTGC_2D_PN.cpp")
+target_link_libraries(sTGC_2D_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
 add_executable(sTGC_3D_QN "apps/sTGC_3D_QN.cpp")
 target_link_libraries(sTGC_3D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
@@ -79,15 +79,15 @@ target_link_libraries(sTGC_3D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json n
 add_executable(sTGC_3D_PN "apps/sTGC_3D_PN.cpp")
 target_link_libraries(sTGC_3D_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
-add_executable(SEA_QN "apps/SEA_QN.cpp")
-target_link_libraries(SEA_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
+add_executable(SEA_Generalized_2D_QN "apps/SEA_Generalized_2D_QN.cpp")
+target_link_libraries(SEA_Generalized_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
 # suitesparse
 
 # suitesparse installed by homebrew (Apple Silicon)
 set(SUITESPARSE_INCLUDE_DIR /opt/homebrew/include/suitesparse CACHE PATH "suitesparse include directory")
-target_include_directories(arcOverlap_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
-target_include_directories(sTGC_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
+target_include_directories(SEA_2D_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
+target_include_directories(sTGC_2D_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
 target_include_directories(sTGC_3D_PN PUBLIC "${SUITESPARSE_INCLUDE_DIR}")
 
 if (WIN32)
@@ -97,14 +97,14 @@ if (WIN32)
     # directory where SuiteSparse-config.cmake was installed.
     # ------------------------------------------------------------------
     find_package(SuiteSparse CONFIG REQUIRED)
-    target_link_libraries(arcOverlap_PN PRIVATE SuiteSparse::CHOLMOD)
-    target_link_libraries(sTGC_PN PRIVATE SuiteSparse::CHOLMOD)
+    target_link_libraries(SEA_2D_PN PRIVATE SuiteSparse::CHOLMOD)
+    target_link_libraries(sTGC_2D_PN PRIVATE SuiteSparse::CHOLMOD)
     target_link_libraries(sTGC_3D_PN PRIVATE SuiteSparse::CHOLMOD)
 else()
     # cholmod from suitesparse installed by homebrew (Apple Silicon)
     set(SUITESPARSE_LIB_DIR /opt/homebrew/lib CACHE PATH "suitesparse library directory")
-    target_link_libraries(arcOverlap_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
-    target_link_libraries(sTGC_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
+    target_link_libraries(SEA_2D_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
+    target_link_libraries(sTGC_2D_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
     target_link_libraries(sTGC_3D_PN PUBLIC -L"${SUITESPARSE_LIB_DIR}" cholmod)
 endif()
 
@@ -112,7 +112,7 @@ endif()
 # Math library
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
-    target_link_libraries(findInjective PUBLIC ${MATH_LIBRARY})
+    target_link_libraries(TLC_QN PUBLIC ${MATH_LIBRARY})
     target_link_libraries(arc_arc_intersection_test PUBLIC ${MATH_LIBRARY})
     target_link_libraries(subdivide_polyArc_test PUBLIC ${MATH_LIBRARY})
 endif()

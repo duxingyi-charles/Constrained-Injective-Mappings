@@ -17,6 +17,7 @@ public:
 
     // initialize from rest mesh and parameters: get ready for computing TGC energy and derivatives
     // need to satisfy 6 * k^(1/3) * lambda1 + 2 * k * lambda2 = 1
+    // IsoTLC: lambda1 = 1/6, lambda2 = 0, k = 1
     void initialize(const Eigen::Matrix3Xd &rest_vertices, const Eigen::Matrix4Xi &tets,
                     const std::string &form, double alpha, double lambda1, double lambda2, double k);
 

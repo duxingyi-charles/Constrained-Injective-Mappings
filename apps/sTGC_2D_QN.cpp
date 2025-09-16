@@ -1,8 +1,13 @@
 //
-// Created by Charles Du on 4/30/21.
+// Created by Charles Du on 3/29/22.
+// Total Generalized Lifted Content (TGC) Quasi-Newton solver for triangle meshes
+// Total Lifted Content (TLC) was introduced in "Lifting Simplices to Find Injectivity", SIGGRAPH 2020.
+// Isometric Total Lifted Content (IsoTLC) was introduced in "Isometric Energies for Recovering Injectivity in Constrained Mapping", SIGGRAPH Asia 2022.
+// TLC and IsoTLC are special cases of TGC under different parameter settings:
+// TLC: lambda1 = 0.5, lambda2 = 0, k = 1
+// IsoTLC: lambda1 = lambda2 = 0.25, k = 1
 //
 
-// 2D/3D lifted formulation
 #include <cmath>
 #include <vector>
 #include <iostream>
@@ -13,8 +18,9 @@
 
 #include <nlopt.hpp>
 
-#include "Arc_Overlap_Formulation.h"
+#include "sTGC_2D_Formulation.h"
 #include "optimization_util.h"
+#include "deformation_gradient_util.h"
 
 using namespace Eigen;
 
@@ -24,16 +30,22 @@ class SolverOptionManager
 {
 public:
     //default options
-    SolverOptionManager():
-            form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
+    SolverOptionManager() :
+            form("Tutte"), alpha(1),
+            lambda1(0.5), lambda2(0.), k(1.), // lambda1 + k * lambda2 = 1/2
+            scale_rest_mesh(false), subtract_total_signed_area(true),
+            aspect_ratio_threshold(0),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
+            maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {};
     //import options from file
-    explicit SolverOptionManager(const char* filename):
-            form("Tutte"), alphaRatio(1e-6), alpha(-1), theta(0.1),
+    explicit SolverOptionManager(const char* filename) :
+            form("Tutte"), alpha(1),
+            lambda1(0.5), lambda2(0.), k(1.),
+            scale_rest_mesh(false), subtract_total_signed_area(true),
+            aspect_ratio_threshold(0),
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8),
-            maxeval(10000), algorithm("LBFGS"), stopCode("globally_injective"), record()
+            maxeval(10000), algorithm("LBFGS"), stopCode("no_flip_degenerate"), record()
     {
         if (!importOptions(filename))
         {
@@ -45,9 +57,19 @@ public:
 
     // energy formulation options
     std::string form;
-    double alphaRatio;
     double alpha;
-    double theta; //arc angle
+    bool scale_rest_mesh;
+    double lambda1;
+    double lambda2;
+    double k;
+
+    // whether to subtract total signed area
+    bool subtract_total_signed_area;
+
+    // rest triangle aspect ratio threshold
+    // triangles above the threshold will be replaced by a better-shaped one with the same area
+    // if the threshold <=1, no rest triangle will be changed
+    double aspect_ratio_threshold;
 
     // optimization options
     double ftol_abs;
@@ -62,20 +84,24 @@ public:
     void printOptions()
     {
         std::cout << "form:\t" << form << "\n";
-        std::cout << "alphaRatio:\t" << alphaRatio << "\n";
-        std::cout << "alpha:\t"    <<  alpha    << "\n";
-        std::cout << "theta:\t"    <<  theta    << "\n";
-        std::cout << "ftol_abs:\t" <<  ftol_abs << "\n";
-        std::cout << "ftol_rel:\t" <<  ftol_rel << "\n";
-        std::cout << "xtol_abs:\t" <<  xtol_abs << "\n";
-        std::cout << "xtol_rel:\t" <<  xtol_rel << "\n";
-        std::cout << "maxeval:\t" <<  maxeval << "\n";
-        std::cout << "algorithm:\t" <<  algorithm << "\n";
-        std::cout << "stopCode:\t" <<  stopCode << "\n";
-        std::cout << "record:  \t" <<  "{ ";
-        for (std::vector<std::string>::iterator i = record.begin(); i != record.end(); ++i)
+        std::cout << "alpha:\t" << alpha << "\n";
+        std::cout << "lambda1:\t" << lambda1 << "\n";
+        std::cout << "lambda2:\t" << lambda2 << "\n";
+        std::cout << "k:\t" << k << "\n";
+        std::cout << "scale_rest_mesh:\t" << scale_rest_mesh << "\n";
+        std::cout << "subtract_total_signed_area:\t" << subtract_total_signed_area << "\n";
+        std::cout << "aspect_ratio_threshold:\t" << aspect_ratio_threshold << "\n";
+        std::cout << "ftol_abs:\t" << ftol_abs << "\n";
+        std::cout << "ftol_rel:\t" << ftol_rel << "\n";
+        std::cout << "xtol_abs:\t" << xtol_abs << "\n";
+        std::cout << "xtol_rel:\t" << xtol_rel << "\n";
+        std::cout << "maxeval:\t" << maxeval << "\n";
+        std::cout << "algorithm:\t" << algorithm << "\n";
+        std::cout << "stopCode:\t" << stopCode << "\n";
+        std::cout << "record:  \t" << "{ ";
+        for (auto & i : record)
         {
-            std::cout << *i << " ";
+            std::cout << i << " ";
         }
         std::cout << "}" << std::endl;
     }
@@ -85,7 +111,7 @@ public:
         //open the data file
         std::ifstream in_file(filename);
 
-        if (! in_file.is_open())
+        if (!in_file.is_open())
         {
             std::cerr << "Failed to open solver option file:" << filename << "!" << std::endl;
             return false;
@@ -94,7 +120,7 @@ public:
         //read the file
         std::string abnormal = "normal";
         std::string optName;
-        while(true)
+        while (true)
         {
             in_file >> optName;
             if (optName != "form")
@@ -104,13 +130,13 @@ public:
             }
             in_file >> form;
 
-            in_file >> optName;
-            if (optName != "alphaRatio")
-            {
-                abnormal = "alphaRatio";
-                break;
-            }
-            in_file >> alphaRatio;
+            //            in_file >> optName;
+            //            if (optName != "alphaRatio")
+            //            {
+            //                abnormal = "alphaRatio";
+            //                break;
+            //            }
+            //            in_file >> alphaRatio;
 
             in_file >> optName;
             if (optName != "alpha")
@@ -120,12 +146,58 @@ public:
             }
             in_file >> alpha;
 
+//            in_file >> optName;
+//            if (optName != "theta") {
+//                abnormal = "theta";
+//                break;
+//            }
+//            in_file >> theta;
+
             in_file >> optName;
-            if (optName != "theta") {
-                abnormal = "theta";
+            if (optName != "lambda1")
+            {
+                abnormal = "lambda1";
                 break;
             }
-            in_file >> theta;
+            in_file >> lambda1;
+
+            in_file >> optName;
+            if (optName != "lambda2")
+            {
+                abnormal = "lambda2";
+                break;
+            }
+            in_file >> lambda2;
+
+            in_file >> optName;
+            if (optName != "k")
+            {
+                abnormal = "k";
+                break;
+            }
+            in_file >> k;
+
+
+            in_file >> optName;
+            if (optName != "scale_rest_mesh") {
+                abnormal = "scale_rest_mesh";
+                break;
+            }
+            in_file >> scale_rest_mesh;
+
+            in_file >> optName;
+            if (optName != "subtract_total_signed_area") {
+                abnormal = "subtract_total_signed_area";
+                break;
+            }
+            in_file >> subtract_total_signed_area;
+
+            in_file >> optName;
+            if (optName != "aspect_ratio_threshold") {
+                abnormal = "aspect_ratio_threshold";
+                break;
+            }
+            in_file >> aspect_ratio_threshold;
 
             in_file >> optName;
             if (optName != "ftol_abs")
@@ -257,12 +329,34 @@ public:
                 record.emplace_back("gradNorm");
             }
 
+            in_file >> optName;
+            if (optName != "initSingularValues") {
+                abnormal = "initSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("initSingularValues");
+            }
+
+            in_file >> optName;
+            if (optName != "resultSingularValues") {
+                abnormal = "resultSingularValues";
+                break;
+            }
+            selected = 0;
+            in_file >> selected;
+            if (selected > 0) {
+                record.emplace_back("resultSingularValues");
+            }
+
             break;
         }
 
         in_file.close();
 
-        if (abnormal!="normal")
+        if (abnormal != "normal")
         {
             std::cout << "Err:(" << abnormal << ") fail to import options from file. Check file format." << std::endl;
             return false;
@@ -279,49 +373,60 @@ public:
 class Optimization_Data
 {
 public:
-    Optimization_Data(const MatrixXd  &restV,
-                      const Matrix2Xd &initV,
-                      const Matrix3Xi &restF,
-                      const VectorXi &handles,
-                      const std::string &form,
-                      double alphaRatio,
+    Optimization_Data(const MatrixXd& restV,
+                      const Matrix2Xd& initV,
+                      const Matrix3Xi& restF,
+                      const VectorXi& handles,
+                      const std::string& form,
                       double alpha,
-                      double theta) :
-                      F(restF), solutionFound(false), custom_criteria_met(false),
-                      locally_injective_Found(false),
-                      first_locally_injective_iteration(-1),first_locally_injective_V(initV),
-                      non_flip_Found(false), first_non_flip_iteration(-1),
-                      first_non_flip_V(initV), iteration_count(0), max_iterations(1),
+                      double lambda1, double lambda2, double k,
+                      bool scale_rest_mesh,
+                      bool subtract_total_signed_area,
+                      double aspect_ratio_threshold) :
+            F(restF), solutionFound(false), custom_criteria_met(false),
+            locally_injective_Found(false),
+            first_locally_injective_iteration(-1), iteration_count(0), max_iterations(1),
+            first_locally_injective_V(initV),
+            non_flip_Found(false), first_non_flip_iteration(-1),
+            first_non_flip_V(initV),
             lastFunctionValue(HUGE_VAL), stopCode("none"),
-            nb_feval(0),nb_geval(0),
-            record_vert(false), record_energy(false), record_minArea(false),
-            record_nb_winded_interior_vertices(false), record_gradient(false),
-            record_gradient_norm(false),
-            vertRecord(0),energyRecord(0), minAreaRecord(0), gradRecord(0),
-            formulation(restV,initV,restF,handles,form,alphaRatio,alpha,theta),
+            nb_feval(0), nb_geval(0),
+            record_vert(false), record_energy(false), record_gradient(false),
+            record_gradient_norm(false), record_minArea(false),
+            record_nb_winded_interior_vertices(false),
+            record_init_singular_values(false), record_result_singular_values(false),
+            vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
+            formulation(restV, initV, restF, handles, form, alpha,
+                        lambda1, lambda2, k,
+                        scale_rest_mesh, subtract_total_signed_area,
+                        aspect_ratio_threshold),
             is_boundary_vertex(initV.cols(), false)
     {
         x0 = formulation.get_x0();
 
         // find boundary vertex
         const auto& boundary_edges = formulation.get_boundary_edges();
-        for (const auto & e : boundary_edges) {
+        for (const auto& e : boundary_edges) {
             is_boundary_vertex[e.first] = true;
             is_boundary_vertex[e.second] = true;
         }
 
         // initialize lastGradient
         lastGradient.setZero(x0.size());
+
+        // singular values of initial mesh
+        compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), initV, F,
+                                         init_singular_values);
     };
 
-    ~ Optimization_Data() = default;
+    ~Optimization_Data() = default;
 
-    Arc_Overlap_Formulation formulation;
+    sTGC_2D_Formulation formulation;
 
-//    Matrix2Xd V;
-//    VectorXi freeI;
+    //    Matrix2Xd V;
+    //    VectorXi freeI;
     Matrix3Xi F;
-//    Matrix3Xd restD;
+    //    Matrix3Xd restD;
     VectorXd x0;
 
     std::vector<bool> is_boundary_vertex;
@@ -332,16 +437,14 @@ public:
 
     VectorXd lastGradient;
 
+    bool locally_injective_Found;
     int  iteration_count;
     int  max_iterations;
-
-    bool non_flip_Found;
-    int  first_non_flip_iteration;
-    Matrix2Xd first_non_flip_V;
-
-    bool locally_injective_Found;
     int  first_locally_injective_iteration;
     Matrix2Xd first_locally_injective_V;
+    bool non_flip_Found;
+    int first_non_flip_iteration;
+    Matrix2Xd first_non_flip_V;
 
     int nb_feval;
     int nb_geval;
@@ -355,25 +458,30 @@ public:
     bool record_gradient_norm;
     bool record_minArea;
     bool record_nb_winded_interior_vertices;
+    bool record_init_singular_values;
+    bool record_result_singular_values;
     std::vector<Matrix2Xd> vertRecord;
     std::vector<double> minAreaRecord;
     std::vector<double> energyRecord;
     std::vector<VectorXd> gradRecord;
     std::vector<double> gradNormRecord;
     std::vector<int> nb_winded_interior_vertices_Record;
+    Matrix2Xd init_singular_values;
 
 
-    // record information we care about
-    void set_record_flags(const std::vector<std::string> &record)
+    // record information we cared about
+    void set_record_flags(const std::vector<std::string>& record)
     {
-        for (auto i = record.begin(); i != record.end(); ++i)
+        for (const auto & i : record)
         {
-            if (*i == "vert")    record_vert = true;
-            if (*i == "energy")  record_energy = true;
-            if (*i == "minArea") record_minArea = true;
-            if (*i == "nbWindVert") record_nb_winded_interior_vertices = true;
-            if (*i == "grad")  record_gradient = true;
-            if (*i == "gradNorm") record_gradient_norm = true;
+            if (i == "vert")    record_vert = true;
+            if (i == "energy")  record_energy = true;
+            if (i == "minArea") record_minArea = true;
+            if (i == "nbWindVert") record_nb_winded_interior_vertices = true;
+            if (i == "grad")  record_gradient = true;
+            if (i == "gradNorm") record_gradient_norm = true;
+            if (i == "initSingularValues") record_init_singular_values = true;
+            if (i == "resultSingularValues") record_result_singular_values = true;
         }
     }
 
@@ -401,11 +509,14 @@ public:
     {
         if (stopCode == "no_flip_degenerate") {
             return stopQ_no_flip_degenerate();
-        } else if (stopCode == "locally_injective") {
+        }
+        else if (stopCode == "locally_injective") {
             return stopQ_locally_injective();
-        } else if (stopCode == "globally_injective") {
-            return stopQ_globally_injective();
-        } else {
+        }
+//        else if (stopCode == "globally_injective") {
+//            return stopQ_globally_injective();
+//        }
+        else {
             //default
             return false;
         }
@@ -417,12 +528,13 @@ public:
 
         if (record_minArea && !minAreaRecord.empty()) {
             if (minAreaRecord.back() <= 0) no_flip_degenerate = false;
-        } else {
-            double minA = compute_min_signed_mesh_area(formulation.get_V(), F);
+        }
+        else {
+            double minA = compute_min_signed_mesh_area(formulation.get_V(), F); //todo: only check free faces
             if (minA <= 0) no_flip_degenerate = false;
         }
 
-        if (no_flip_degenerate && !non_flip_Found) {
+        if (!non_flip_Found && no_flip_degenerate) {
             non_flip_Found = true;
             first_non_flip_iteration = iteration_count;
             first_non_flip_V = formulation.get_V();
@@ -434,15 +546,18 @@ public:
     bool stopQ_locally_injective() {
         if (!stopQ_no_flip_degenerate()) {
             return false;
-        } else {
+        }
+        else {
             bool is_locally_injective = false;
             // check if there is any over-winding interior vertices
             if (record_nb_winded_interior_vertices && !nb_winded_interior_vertices_Record.empty()) {
                 if (nb_winded_interior_vertices_Record.back() == 0) {
                     is_locally_injective = true;
                 }
-            } else {
+            }
+            else {
                 std::vector<size_t> winded_vertices;
+                // todo: only compute winding number if the one ring of the vertex is free
                 compute_winded_interior_vertices(formulation.get_V(), F, is_boundary_vertex, winded_vertices);
                 if (winded_vertices.empty()) {
                     is_locally_injective = true;
@@ -458,31 +573,11 @@ public:
         }
     }
 
-    bool stopQ_globally_injective() {
-        if (locally_injective_Found) {
-            // locally injective mesh is already found
-            if (!stopQ_no_flip_degenerate()) {
-                return false;
-            } else {
-                return !(formulation.has_found_intersection);
-            }
-        } else {
-            if (!stopQ_locally_injective()) {
-                return false;
-            } else {
-                // check global injectivity:
-                // if no arc-arc intersection is found in the last energy/gradient evaluation,
-                // then global injectivity is surely achieved
-                return !(formulation.has_found_intersection);
-            }
-        }
-    }
-
     //export result
     bool exportResult(const char* filename)
     {
         std::ofstream out_file(filename);
-        if (! out_file.is_open()) {
+        if (!out_file.is_open()) {
             std::cerr << "Failed to open " << filename << "!" << std::endl;
             return false;
         }
@@ -494,7 +589,7 @@ public:
         //write the file
 
         /// resV
-        const auto &V = formulation.get_V();
+        const auto& V = formulation.get_V();
         auto nv = V.cols();
         auto ndim = V.rows();
         out_file << "resV " << nv << " " << ndim << "\n";
@@ -502,7 +597,7 @@ public:
         {
             for (int j = 0; j < ndim; ++j)
             {
-                out_file << V(j,i) << " ";
+                out_file << V(j, i) << " ";
             }
         }
         out_file << std::endl;
@@ -520,7 +615,7 @@ public:
         {
             for (int j = 0; j < ndim; ++j)
             {
-                out_file << first_non_flip_V(j,i) << " ";
+                out_file << first_non_flip_V(j, i) << " ";
             }
         }
         out_file << std::endl;
@@ -538,7 +633,7 @@ public:
         {
             for (int j = 0; j < ndim; ++j)
             {
-                out_file << first_locally_injective_V(j,i) << " ";
+                out_file << first_locally_injective_V(j, i) << " ";
             }
         }
         out_file << std::endl;
@@ -550,10 +645,10 @@ public:
             nv = vertRecord[0].cols();
             ndim = vertRecord[0].rows();
             out_file << "vert " << n_record << " " << nv << " " << ndim << std::endl;
-            for (const auto & vert : vertRecord) {
+            for (const auto& vert : vertRecord) {
                 for (int i = 0; i < nv; ++i) {
                     for (int j = 0; j < ndim; ++j) {
-                        out_file << vert(j,i) << " ";
+                        out_file << vert(j, i) << " ";
                     }
                 }
             }
@@ -617,6 +712,40 @@ public:
             out_file << std::endl;
         }
 
+        if (record_init_singular_values)
+        {
+            auto ncol = init_singular_values.cols();
+            auto nrow = init_singular_values.rows();
+            out_file << "initSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << init_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+        if (record_result_singular_values)
+        {
+            Matrix2Xd result_singular_values;
+            compute_tri_mesh_singular_values(formulation.get_scaled_rest_vertices(), formulation.get_V(), F,
+                                             result_singular_values);
+            auto ncol = result_singular_values.cols();
+            auto nrow = result_singular_values.rows();
+            out_file << "resultSingularValues " << ncol << " " << nrow << "\n";
+            for (int i = 0; i < ncol; ++i)
+            {
+                for (int j = 0; j < nrow; ++j)
+                {
+                    out_file << result_singular_values(j, i) << " ";
+                }
+            }
+            out_file << std::endl;
+        }
+
+
         out_file.close();
         return true;
     }
@@ -632,14 +761,14 @@ class null_Grad_Exception : public std::exception
 } null_grad_exception;
 
 //
-double objective_func(const std::vector<double> &x, std::vector<double> &grad, void *my_func_data)
+double objective_func(const std::vector<double>& x, std::vector<double>& grad, void* my_func_data)
 {
-    Optimization_Data *data = (Optimization_Data *) my_func_data;
+    auto* data = (Optimization_Data*)my_func_data;
 
     if (data->solutionFound) {
         if (!grad.empty()) {
-            for (int i = 0; i < grad.size(); ++i) {
-                grad[i] = 0;
+            for (double & i : grad) {
+                i = 0;
             }
         }
         return data->lastFunctionValue;
@@ -650,9 +779,7 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
     VectorXd g_vec;
 
     if (grad.empty()) {  // only energy is required
-//        energy = data->formulation.compute_energy(x_vec);
-        energy = -1; // energy is not computed
-        // record information for new l-bfgs iteration
+        energy = -1;
         data->iteration_count += 1;
         data->record();
         // custom stop criterion
@@ -667,7 +794,8 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
         }
         //test
 //        data->nb_feval += 1;
-    } else { // gradient is required
+    }
+    else { // gradient is required
         // convert x to Eigen::VectorXd
         VectorXd x_vec(x.size());
         for (int i = 0; i < x.size(); ++i) {
@@ -695,11 +823,11 @@ double objective_func(const std::vector<double> &x, std::vector<double> &grad, v
 
 
 //
-int main(int argc, char const *argv[])
+int main(int argc, char const* argv[])
 {
     const char* dataFile = (argc > 1) ? argv[1] : "./input";
-    const char* optFile  = (argc > 2) ? argv[2] : "./solver_options";
-    const char* resFile  = (argc > 3) ? argv[3] : "./result";
+    const char* optFile = (argc > 2) ? argv[2] : "./solver_options";
+    const char* resFile = (argc > 3) ? argv[3] : "./result";
 
     //import data
     MatrixXd restV;
@@ -707,20 +835,31 @@ int main(int argc, char const *argv[])
     Matrix3Xi F;
     VectorXi handles;
 
-    bool succeed = importData(dataFile,restV,initV,F,handles);
+    bool succeed = importData(dataFile, restV, initV, F, handles);
     if (!succeed) {
-        std::cout << "usage: arcOverlap_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
+        std::cout << "usage: sTGC_2D_QN [inputFile] [solverOptionsFile] [resultFile]" << std::endl;
         return -1;
+    }
+
+    // normalize mesh to have unit content
+    double init_total_signed_content = compute_total_signed_mesh_area(initV, F);
+    if (init_total_signed_content > 0) {
+        double scale = sqrt(1. / init_total_signed_content);
+        initV *= scale;
+        restV *= scale;
     }
 
     //import options
     SolverOptionManager options(optFile);
-    //std::cout << "--- options ---" << std::endl;
-    //options.printOptions();
+    //    std::cout << "--- options ---" << std::endl;
+    //    options.printOptions();
 
 
     //init
-    Optimization_Data data(restV, initV, F, handles, options.form, options.alphaRatio, options.alpha, options.theta);
+    Optimization_Data data(restV, initV, F, handles, options.form,options.alpha,
+                           options.lambda1, options.lambda2, options.k,
+                           options.scale_rest_mesh, options.subtract_total_signed_area,
+                           options.aspect_ratio_threshold);
 
     auto nv = restV.cols();
     auto nfree = nv - handles.size();
@@ -742,7 +881,7 @@ int main(int argc, char const *argv[])
     opt.set_xtol_abs(options.xtol_abs);
     opt.set_xtol_rel(options.xtol_rel);
 //    opt.set_maxeval(options.maxeval);
-    // bug of NLopt: setting maxeval to -1 other than a positive integer will yield different optimization process 
+    // bug of NLopt: setting maxeval to -1 other than a positive integer will yield different optimization process
     //opt.set_maxeval(-1);
     // instead, we set maxeval to a number much larger than the user-specified max number of iterations
     opt.set_maxeval(options.maxeval * 100);
@@ -761,20 +900,16 @@ int main(int argc, char const *argv[])
     }
     double minf;
 
-    // reset timings
-    reset_timings();
     //optimize
-    try{
+    try {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         nlopt::result result = opt.optimize(x, minf);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         std::cout << "Time difference: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << " [microseconds]" << std::endl;
         std::cout << "result: ";
-        switch(result) {
+        switch (result) {
             case nlopt::SUCCESS:
-                if (data.iteration_count >= data.max_iterations) {
-                    std::cout << "MAXITER_REACHED" << std::endl;
-                } else std::cout << "SUCCESS" << std::endl;
+                std::cout << "SUCCESS" << std::endl;
                 break;
             case nlopt::STOPVAL_REACHED:
                 std::cout << "STOPVAL_REACHED" << std::endl;
@@ -802,10 +937,8 @@ int main(int argc, char const *argv[])
         std::cout << data.iteration_count << " iterations" << std::endl;
 //        std::cout << data.nb_feval << " pure function evaluations" << std::endl;
         std::cout << data.nb_geval << " function/gradient evaluations" << std::endl;
-        // timings
-        print_timings();
     }
-    catch(std::exception &e) {
+    catch (std::exception& e) {
         std::cout << "nlopt failed: " << e.what() << std::endl;
     }
 

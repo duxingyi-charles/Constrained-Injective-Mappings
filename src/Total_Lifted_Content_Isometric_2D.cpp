@@ -2,11 +2,11 @@
 // Created by Charles Du on 6/19/21.
 //
 
-#include "Total_Lifted_Content_Isometric.h"
+#include "Total_Lifted_Content_Isometric_2D.h"
 
 //#include <iostream>
 
-void Total_Lifted_Content_Isometric::initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
+void Total_Lifted_Content_Isometric_2D::initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
                                                 const std::string &form, double alpha) {
     //
     F = faces;
@@ -57,7 +57,7 @@ void Total_Lifted_Content_Isometric::initialize(const Eigen::MatrixXd &rest_vert
 
 }
 
-double Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric(const Eigen::Matrix2Xd &vertices) const {
+double Total_Lifted_Content_Isometric_2D::compute_total_lifted_content_isometric(const Eigen::Matrix2Xd &vertices) const {
     Eigen::VectorXd energyList = Eigen::VectorXd::Zero(F.cols());
     int vDim = 2;
     int simplex_size = 3; //triangle
@@ -75,7 +75,7 @@ double Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric(co
     return energyList.sum();
 }
 
-double Total_Lifted_Content_Isometric::compute_lifted_TriArea_isometric(const Eigen::Matrix2Xd &vert,
+double Total_Lifted_Content_Isometric_2D::compute_lifted_TriArea_isometric(const Eigen::Matrix2Xd &vert,
                                                                         const Eigen::Vector3d &Dirichlet_coef,
                                                                         double scaled_squared_rest_area) const {
     auto v1 = vert.col(0);
@@ -93,7 +93,7 @@ double Total_Lifted_Content_Isometric::compute_lifted_TriArea_isometric(const Ei
     );
 }
 
-double Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric(const Eigen::Matrix2Xd &vertices,
+double Total_Lifted_Content_Isometric_2D::compute_total_lifted_content_isometric(const Eigen::Matrix2Xd &vertices,
                                                                               Eigen::VectorXd &energyList) const {
     energyList = Eigen::VectorXd::Zero(F.cols());
     int vDim = 2;
@@ -114,7 +114,7 @@ double Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric(co
 }
 
 double
-Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric_with_gradient(const Eigen::Matrix2Xd &vertices,
+Total_Lifted_Content_Isometric_2D::compute_total_lifted_content_isometric_with_gradient(const Eigen::Matrix2Xd &vertices,
                                                                                      Eigen::Matrix2Xd &grad) const {
     int vDim = 2;
     double energy = 0.0;
@@ -144,7 +144,7 @@ Total_Lifted_Content_Isometric::compute_total_lifted_content_isometric_with_grad
     return energy;
 }
 
-double Total_Lifted_Content_Isometric::compute_lifted_TriArea_isometric_with_gradient(const Eigen::Matrix2Xd &vert,
+double Total_Lifted_Content_Isometric_2D::compute_lifted_TriArea_isometric_with_gradient(const Eigen::Matrix2Xd &vert,
                                                                                       const Eigen::Vector3d &Dirichlet_coef,
                                                                                       double scaled_squared_rest_area,
                                                                                       Eigen::Matrix2Xd &grad) const {

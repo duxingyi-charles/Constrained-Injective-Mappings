@@ -10,16 +10,16 @@
 #include <Eigen/Sparse>
 typedef Eigen::SparseMatrix<double> SpMat;
 
-class Total_Lifted_Content_Isometric {
+class Total_Lifted_Content_Isometric_2D {
 public:
 
-    Total_Lifted_Content_Isometric() = default;
+    Total_Lifted_Content_Isometric_2D() = default;
 
     // initialize from rest mesh and parameters: get ready for computing TLC_iso energy and derivatives
     void initialize(const Eigen::MatrixXd &rest_vertices, Eigen::Matrix3Xi faces,
                     const std::string &form, double alpha);
 
-    ~Total_Lifted_Content_Isometric() = default;
+    ~Total_Lifted_Content_Isometric_2D() = default;
 
     // compute total lifted content (isometric)
     double compute_total_lifted_content_isometric(const Eigen::Matrix2Xd &vertices) const;

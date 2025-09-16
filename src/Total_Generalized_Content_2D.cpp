@@ -2,7 +2,7 @@
 // Created by Charles Du on 3/28/22.
 //
 
-#include "Total_Generalized_Content.h"
+#include "Total_Generalized_Content_2D.h"
 
 #include <Eigen/Eigenvalues>
 #include "deformation_gradient_util.h"
@@ -10,7 +10,7 @@
 #include <iostream>
 
 
-void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix3Xi &faces,
+void Total_Generalized_Content_2D::initialize(const Eigen::MatrixXd &rest_vertices, const Eigen::Matrix3Xi &faces,
                                            const std::string &form, double alpha, double lambda1, double lambda2,
                                            double k, double aspect_ratio_threshold) {
     //
@@ -127,7 +127,7 @@ void Total_Generalized_Content::initialize(const Eigen::MatrixXd &rest_vertices,
     coeff_off_diag_subtracted = 2*alpha*(alpha - 2*alpha*lambda1*lambda1 + 2*k*k*lambda2 + 2*alpha*alpha*lambda2 + 4*k*k*alpha*lambda2*lambda2);
 }
 
-double Total_Generalized_Content::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices) const {
+double Total_Generalized_Content_2D::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices) const {
     Eigen::VectorXd energyList = Eigen::VectorXd::Zero(F.cols());
 //    int vDim = 2;
 //    int simplex_size = 3; //triangle
@@ -146,7 +146,7 @@ double Total_Generalized_Content::compute_total_generalized_content(const Eigen:
     return energyList.sum();
 }
 
-double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Vector2d &v1,
+double Total_Generalized_Content_2D::compute_generalized_TriArea(const Eigen::Vector2d &v1,
                                                               const Eigen::Vector2d &v2,
                                                               const Eigen::Vector2d &v3,
                                                               const Eigen::Vector3d &Dirichlet_coef,
@@ -163,7 +163,7 @@ double Total_Generalized_Content::compute_generalized_TriArea(const Eigen::Vecto
     );
 }
 
-double Total_Generalized_Content::compute_generalized_negative_TriArea(const Eigen::Vector2d &v1,
+double Total_Generalized_Content_2D::compute_generalized_negative_TriArea(const Eigen::Vector2d &v1,
                                                               const Eigen::Vector2d &v2,
                                                               const Eigen::Vector2d &v3,
                                                               const Eigen::Vector3d &Dirichlet_coef,
@@ -180,7 +180,7 @@ double Total_Generalized_Content::compute_generalized_negative_TriArea(const Eig
     ) - area;
 }
 
-double Total_Generalized_Content::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices,
+double Total_Generalized_Content_2D::compute_total_generalized_content(const Eigen::Matrix2Xd &vertices,
                                                                     Eigen::VectorXd &energyList) const {
     energyList = Eigen::VectorXd::Zero(F.cols());
 //    int vDim = 2;
@@ -200,7 +200,7 @@ double Total_Generalized_Content::compute_total_generalized_content(const Eigen:
     return energyList.sum();
 }
 
-double Total_Generalized_Content::compute_total_generalized_negative_content(const Eigen::Matrix2Xd &vertices,
+double Total_Generalized_Content_2D::compute_total_generalized_negative_content(const Eigen::Matrix2Xd &vertices,
                                                                              Eigen::VectorXd &generalized_neg_content_list) const {
     generalized_neg_content_list = Eigen::VectorXd::Zero(F.cols());
 //    int vDim = 2;
@@ -220,7 +220,7 @@ double Total_Generalized_Content::compute_total_generalized_negative_content(con
     return generalized_neg_content_list.sum();
 }
 
-double Total_Generalized_Content::compute_total_generalized_content_with_gradient(const Eigen::Matrix2Xd &vertices,
+double Total_Generalized_Content_2D::compute_total_generalized_content_with_gradient(const Eigen::Matrix2Xd &vertices,
                                                                                   Eigen::Matrix2Xd &grad) const {
 //    int vDim = 2;
 //    double energy = 0.0;
@@ -259,7 +259,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
     return energyList.sum();
 }
 
-double Total_Generalized_Content::compute_generalized_TriArea_with_gradient(const Eigen::Vector2d &v1,
+double Total_Generalized_Content_2D::compute_generalized_TriArea_with_gradient(const Eigen::Vector2d &v1,
                                                                             const Eigen::Vector2d &v2,
                                                                             const Eigen::Vector2d &v3,
                                                                             const Eigen::Vector3d &Dirichlet_coef,
@@ -306,7 +306,7 @@ double Total_Generalized_Content::compute_generalized_TriArea_with_gradient(cons
     return energy;
 }
 
-double Total_Generalized_Content::compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(
+double Total_Generalized_Content_2D::compute_total_generalized_content_with_gradient_and_sTGC_projectedHessian(
         const Eigen::Matrix2Xd &vertices, const Eigen::VectorXi &freeI, const Eigen::Matrix3Xi &F_free,
         Eigen::VectorXd &generalized_content_list, Eigen::Matrix2Xd &grad, SpMat &Hess) const {
     int vDim = 2;
@@ -386,7 +386,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 }
 
 double
-Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(const Eigen::Vector2d &v1,
+Total_Generalized_Content_2D::compute_generalized_TriArea_with_gradient_projected_subtracted_Hessian(const Eigen::Vector2d &v1,
                                                                                                   const Eigen::Vector2d &v2,
                                                                                                   const Eigen::Vector2d &v3,
                                                                                       const Eigen::Vector3d &Dirichlet_coef,
@@ -529,7 +529,7 @@ Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projected_s
     return energy;
 }
 
-double Total_Generalized_Content::compute_total_generalized_content_with_gradient_and_TGC_projectedHessian(
+double Total_Generalized_Content_2D::compute_total_generalized_content_with_gradient_and_TGC_projectedHessian(
         const Eigen::Matrix2Xd &vertices, const Eigen::VectorXi &freeI, const Eigen::Matrix3Xi &F_free,
         Eigen::VectorXd &generalized_content_list, Eigen::Matrix2Xd &grad, SpMat &Hess) const {
     int vDim = 2;
@@ -609,7 +609,7 @@ double Total_Generalized_Content::compute_total_generalized_content_with_gradien
 }
 
 double
-Total_Generalized_Content::compute_generalized_TriArea_with_gradient_projectedHessian(const Eigen::Vector2d &v1,
+Total_Generalized_Content_2D::compute_generalized_TriArea_with_gradient_projectedHessian(const Eigen::Vector2d &v1,
                                                                                       const Eigen::Vector2d &v2,
                                                                                       const Eigen::Vector2d &v3,
                                                                                       const Eigen::Vector3d &Dirichlet_coef,
