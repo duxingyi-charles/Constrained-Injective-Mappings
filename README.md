@@ -19,9 +19,9 @@ This codebase provides various programs for computing injective mappings under d
 
 Use these programs for mapping a mesh into a target domain with a prescribed boundary shape and want to optimize the interior mapping while keeping the boundary unchanged.
 
-|                            rest mesh                             |                        injective mesh optimization                        |
-|:----------------------------------------------------------------:|:-------------------------------------------------------------------------:|
-| <img src="media/Lucy.png" width="360" alt="Lucy static preview"> | <img src="media/Lucy_S_IsoTLC_PN.gif" width="360" alt="Lucy_S animation"> |
+|                       rest mesh                        |                        injective mesh optimization                        |
+|:------------------------------------------------------:|:-------------------------------------------------------------------------:|
+| <img src="media/Lucy.png" width="360" alt="Lucy mesh"> | <img src="media/Lucy_S_IsoTLC_PN.gif" width="360" alt="Lucy_S animation"> |
 
 #### 2D Triangle Meshes
 - **sTGC_2D_QN**: Recommended for most 2D problems. Supports both standard TLC and isometric TLC variants
@@ -35,6 +35,11 @@ Use these programs for mapping a mesh into a target domain with a prescribed bou
 ### For Mappings with General Positional Constraints
 
 Use this program when you have arbitrary positional constraints scattered throughout your mesh.
+
+|                           rest mesh                            |                          injective mesh optimization                          |
+|:--------------------------------------------------------------:|:-----------------------------------------------------------------------------:|
+| <img src="media/D1_00722.png" width="360" alt="D1_00722 mesh"> | <img src="media/D1_00722_IsoSEA_QN.gif" width="360" alt="D1_00722 animation"> |
+
 
 - **SEA_Generalized_2D_QN**: Handles both standard SEA and isometric SEA formulations for 2D triangle meshes
 
