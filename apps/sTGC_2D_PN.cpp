@@ -61,8 +61,7 @@ public:
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8), gtol_abs(1e-8),
             maxeval(10000), line_search_gamma(1e-4), aspect_ratio_threshold(0),
             algorithm("Projected_Newton"), stopCode("no_flip_degenerate"),
-            record(),
-            save_vert(false) {};
+            record() {};
 
     //import options from file
     explicit SolverOptionManager(const char* filename, const char *result_filename) :
@@ -72,8 +71,7 @@ public:
             ftol_abs(1e-8), ftol_rel(1e-8), xtol_abs(1e-8), xtol_rel(1e-8), gtol_abs(1e-8),
             maxeval(10000), line_search_gamma(1e-4), aspect_ratio_threshold(0),
             algorithm("Projected_Newton"), stopCode("no_flip_degenerate"),
-            record(),
-            save_vert(false), resFile(result_filename)
+            record(), resFile(result_filename)
     {
         if (!importOptions(filename))
         {
@@ -115,7 +113,6 @@ public:
 
     //save values
     std::string resFile;
-    bool save_vert;
 
     void printOptions()
     {
@@ -143,9 +140,6 @@ public:
         std::cout << "}" << std::endl;
         //
         std::cout << "result file: \t" << resFile << std::endl;
-        std::cout << "save:  \t" << "{ ";
-        if (save_vert) std::cout << "vert ";
-        std::cout << "}" << std::endl;
     }
 
     bool importOptions(const char* filename)
@@ -463,24 +457,6 @@ public:
                 record.emplace_back("lastNonFlip");
             }
 
-            // save values
-            in_file >> optName;
-            if (optName != "save") {
-                abnormal = "save";
-                break;
-            }
-
-            in_file >> optName;
-            if (optName != "vert") {
-                abnormal = "vert";
-                break;
-            }
-            selected = 0;
-            in_file >> selected;
-            if (selected > 0) {
-                save_vert = true;
-            }
-
             break;
         }
 
@@ -527,7 +503,6 @@ public:
             record_init_singular_values(false), record_result_singular_values(false),
             record_stepNorm(false), record_stepSize(false), record_last_non_flip(false),
             vertRecord(0), energyRecord(0), minAreaRecord(0), gradRecord(0),
-            save_vert(false),
             formulation(restV, initV, restF, handles, form, alpha,
                         lambda1, lambda2, k,
                         scale_rest_mesh, subtract_total_signed_area,
@@ -601,10 +576,6 @@ public:
     Matrix2Xd init_singular_values;
     int last_non_flip_iteration;
     Matrix2Xd last_non_flip_V;
-
-
-    // save data
-    bool save_vert;
 
     // for what reason did the solver stop
     std::string stop_type;
@@ -1033,8 +1004,6 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
     double xtol_abs = options.xtol_abs;
     double gtol_abs = options.gtol_abs;
     int maxIter = options.maxeval;
-    //
-//    bool save_vert = options.save_vert;
     //handle options end
 
     //
@@ -1230,7 +1199,6 @@ int main(int argc, char const* argv[])
     //pass relevant options to Optimization_Data
     data.stopCode = options.stopCode;
     data.set_record_flags(options.record);
-    data.save_vert = options.save_vert;
 
     //test: consistency of different runs
     /*double energy1;
