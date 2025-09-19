@@ -19,6 +19,8 @@ This codebase provides various programs for computing injective mappings under d
 
 Use these programs for mapping a mesh into a target domain with a prescribed boundary shape and want to optimize the interior mapping while keeping the boundary unchanged.
 
+![Lucy_S_IsoTLC_PN](media/Lucy.png) ![Lucy_S_IsoTLC_PN](media/Lucy_S_IsoTLC_PN.gif)
+
 #### 2D Triangle Meshes
 - **sTGC_2D_QN**: Recommended for most 2D problems. Supports both standard TLC and isometric TLC variants
 - **sTGC_2D_PN**: Improved convergence rate. Recommended for hard problems where QN has difficulty converging.
