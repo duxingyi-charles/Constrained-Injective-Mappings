@@ -1,0 +1,40 @@
+form
+harmonic
+alpha
+0.001
+lambda1
+0.5
+lambda2
+0
+k
+1
+theta
+0.1
+scale_rest_mesh
+0
+aspect_ratio_threshold
+0
+ftol_abs
+-1
+ftol_rel
+1.e-9
+xtol_abs
+-1
+xtol_rel
+1.e-9
+algorithm
+LBFGS
+maxeval
+4000
+stopCode
+globally_injective
+record
+vert	0
+energy	1
+minArea	1
+nbWindVert	0
+grad	0
+gradNorm	1
+initSingularValues	1
+resultSingularValues	1
+lastInjective	1

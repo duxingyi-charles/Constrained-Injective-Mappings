@@ -1,0 +1,48 @@
+form
+harmonic
+alpha
+0.0001
+lambda1
+0.25
+lambda2
+0.25
+k
+1
+scale_rest_mesh
+1
+subtract_total_signed_area
+1
+aspect_ratio_threshold
+0
+ftol_abs
+-1
+ftol_rel
+1.e-9
+xtol_abs
+-1
+xtol_rel
+1.e-9
+gtol_abs
+1.e-6
+algorithm
+Projected_Newton
+maxeval
+1000
+lineSearchGamma
+0.0001
+stopCode
+none
+record
+vert	0
+energy	1
+minArea	1
+nbWindVert	0
+grad	0
+gradNorm	1
+searchDirection	0
+searchNorm	0
+stepSize	0
+stepNorm	0
+initSingularValues	0
+resultSingularValues	0
+lastNonFlip	0

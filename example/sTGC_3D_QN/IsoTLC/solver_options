@@ -1,0 +1,36 @@
+form
+harmonic
+alpha
+0.0001
+lambda1
+0.16666666666666666
+lambda2
+0
+k
+1
+scale_rest_mesh
+1
+subtract_total_signed_content
+1
+ftol_abs
+-1
+ftol_rel
+1.e-9
+xtol_abs
+-1
+xtol_rel
+1.e-9
+algorithm
+LBFGS
+maxeval
+400
+stopCode
+no_flip_degenerate
+record
+vert	0
+energy	1
+minArea	1
+grad	0
+gradNorm	1
+initSingularValues	0
+resultSingularValues	1
