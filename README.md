@@ -69,11 +69,9 @@ The executable takes 3 arguments: path to an input data file, path to a solver o
 
     ./sTGC_2D_QN [input_file] [solver_options_file] [result_file]
 
-An example is provided in the `example` subdirectory. Test it by:
+Some examples are provided in the `example` subdirectory. Test it by:
 
-    ./sTGC_2D_QN example/input example/solver_options example/my_result
-
-The result will be written to `example/my_result`.
+    ./sTGC_2D_QN example/sTGC_2D_QN/IsoTLC/input example/sTGC_2D_QN/IsoTLC/solver_options example/sTGC_2D_QN/IsoTLC/my_result
 
 In the 3 arguments, `input_file` is mandatory, while the rest two are optional. If `solver_options_file` is not specified, the program will look for a file named `solver_options` in the same directory as the binary. If that file is not found, the program will fall back to default options. If `result_file` is not given, results will be written to a file named `result` in the directory of the binary.
 
@@ -173,8 +171,8 @@ See [`example`](example/) folder for concrete examples.
 Notes:
 - 'form' determines the rest mesh used in the energy formulation. 'harmonic' means using the input rest mesh as-is. 'tutte-uniform' uses a rest mesh that consists of equilateral triangle/tetrahedron whose total area or volume is the same as the input rest mesh.
 - 'lambad1', 'lambda2', 'k' determine the kind of map distortion to be minimized. They must satisfy $$lambda1 + lambda2 \times k = 1/2$$
-- For standard TLC, lambda1 = 1/2, lambda2 = 0, k = 1. 
-- For isometric TLC, lambda1 = 1/4, lambda2 = 1/4, k = 1.
+  - For standard TLC, lambda1 = 1/2, lambda2 = 0, k = 1. 
+  - For isometric TLC, lambda1 = 1/4, lambda2 = 1/4, k = 1.
 - 'scale_rest_mesh': whether to scale the rest mesh to have the same total area/volume as the initial mesh.
 - 'subtract_total_signed_area': whether to subtract the total signed area/volume from the energy.
 - 'aspect_ratio_threshold': replace rest triangles whose aspect ratio is larger than this threshold with equilateral triangles with the same area. If set smaller than 1, no replacement will be performed.
@@ -296,8 +294,7 @@ See [TLC repo](https://github.com/duxingyi-charles/lifting_simplices_to_find_inj
 
 Most options are the same as sTGC_2D_QN solver. 
 - 'lambad1', 'lambda2', 'k' determine the kind of map distortion to be minimized. They must satisfy $$6 k^{1/3} \times lambda1 + 2k  \times lambda2 = 1$$
-
-- For isometric TLC in 3D, set lambda1 = 1/6, lambda2 = 0, k = 1.
+  - For isometric TLC in 3D, set lambda1 = 1/6, lambda2 = 0, k = 1.
 
 **sTGC_3D_PN**
 
