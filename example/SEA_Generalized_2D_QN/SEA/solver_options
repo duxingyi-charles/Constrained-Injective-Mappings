@@ -1,7 +1,7 @@
 form
 harmonic
 alpha
-0.001
+1.e-4
 lambda1
 0.5
 lambda2
@@ -11,7 +11,7 @@ k
 theta
 0.1
 scale_rest_mesh
-0
+1
 aspect_ratio_threshold
 0
 ftol_abs
@@ -25,7 +25,7 @@ xtol_rel
 algorithm
 LBFGS
 maxeval
-4000
+300
 stopCode
 globally_injective
 record
@@ -35,6 +35,6 @@ minArea	1
 nbWindVert	0
 grad	0
 gradNorm	1
-initSingularValues	1
-resultSingularValues	1
-lastInjective	1
+initSingularValues	0
+resultSingularValues	0
+lastInjective	0
