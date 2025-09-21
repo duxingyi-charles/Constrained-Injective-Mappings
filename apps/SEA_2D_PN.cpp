@@ -1,6 +1,8 @@
 //
 // Created by Charles Du on 5/3/21.
 // Smooth Excess Area (SEA) Projected-Newton solver for triangle meshes.
+// Caveat: This is an experimental PN solver for SEA. The Hessian is approximated using TLC's Hessian.
+// Experimental results show that this PN solver is only effective when the mesh boundary is fixed.
 // Optimizing Global Injectivity for Constrained Parameterization, SIGGRAPH Asia 2021.
 //
 
@@ -949,6 +951,8 @@ void projected_Newton(Optimization_Data &data, VectorXd &x, SolverOptionManager 
 
 
 int main(int argc, char const *argv[]) {
+    std::cout << "Experimental PN solver for SEA, not recommended for practical use" << std::endl;
+
     const char *dataFile = (argc > 1) ? argv[1] : "./input";
     const char *optFile = (argc > 2) ? argv[2] : "./solver_options";
     const char *resFile = (argc > 3) ? argv[3] : "./result";

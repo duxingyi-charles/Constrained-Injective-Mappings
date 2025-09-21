@@ -58,6 +58,7 @@ target_link_libraries(SEA_Iso_test PUBLIC arcOverlap CLI11::CLI11 nlohmann::json
 add_executable(SEA_2D_QN apps/SEA_2D_QN.cpp)
 target_link_libraries(SEA_2D_QN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json nlopt::nlopt)
 
+# experimental PN solver for SEA, not recommended for practical use
 add_executable(SEA_2D_PN apps/SEA_2D_PN.cpp)
 target_link_libraries(SEA_2D_PN PUBLIC arcOverlap CLI11::CLI11 nlohmann::json)
 
